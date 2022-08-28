@@ -14,6 +14,7 @@
 - [flex实现等分布局](https://github.com/webVueBlog/fe/issues/8)
 - [左边固定右边自适应](https://github.com/webVueBlog/fe/issues/9)
 - [垂直水平居中对齐](https://github.com/webVueBlog/fe/issues/10)
+- [渲染性能优化全局视角](https://github.com/webVueBlog/fe/issues/11)
 
 ## git commit
 
