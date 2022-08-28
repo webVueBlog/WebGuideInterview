@@ -1,3 +1,6 @@
+# fe
+
+目标：让每个前端人都能够获得一个 offer
 
 ## 实践
 
@@ -12,9 +15,7 @@
 - [左边固定右边自适应](https://github.com/webVueBlog/fe/issues/9)
 - [垂直水平居中对齐](https://github.com/webVueBlog/fe/issues/10)
 
-# fe
-
-目标：让每个前端人都能够获得一个 offer
+## git commit
 
 - feat: 增加新功能
 - fix: 修复bug
