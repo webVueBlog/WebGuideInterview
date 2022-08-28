@@ -8,6 +8,9 @@
 - [什么是外链和内链？](https://github.com/webVueBlog/fe/issues/5)
 - [为什么网站打开速度慢？](https://github.com/webVueBlog/fe/issues/6)
 - [如何提高网站权重](https://github.com/webVueBlog/fe/issues/7)
+- [flex实现等分布局](https://github.com/webVueBlog/fe/issues/8)
+- [左边固定右边自适应](https://github.com/webVueBlog/fe/issues/9)
+- [垂直水平居中对齐](https://github.com/webVueBlog/fe/issues/10)
 
 # fe
 
