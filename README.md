@@ -1,4 +1,4 @@
-# fe
+# 准备
 
 目标：让每个前端人都能够获得一个 offer
 
@@ -11,6 +11,10 @@
 ![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
 
 打开 新建 Issue 链接, 格式如下：
+
+# 冲冲冲字节
+
+- [1. 层叠，优先级，继承](https://github.com/webVueBlog/fe/issues/19)
 
 ## 实践
 
