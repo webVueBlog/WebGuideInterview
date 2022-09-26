@@ -12,7 +12,7 @@
 
 打开 新建 Issue 链接, 格式如下：
 
-# 冲冲冲字节
+# 冲冲冲
 
 - [1. 层叠，优先级，继承](https://github.com/webVueBlog/fe/issues/19)
 
