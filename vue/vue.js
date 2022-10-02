@@ -642,6 +642,68 @@
 	var isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge; // 谷歌浏览器
 	
 	// Firefox has a 'watch' function on Object.prototype...
+	var nativeWathc = ({}).watch;
+	
+	// 兼容火狐浏览器写法
+	var supportsPassive = false;
+	if (inBrowser) {
+		try {
+			var opts = {};
+			Object.defineProperty(opts, 'passive', ({
+				get: function get() {
+					/* istanbul ignore next */
+					supportsPassive = true;
+				}
+			})); // https://github.com/facebook/flow/issues/285
+			window.addEventListener('test-passive', null, opts);
+		} catch (e) {}
+	}
+	
+	// this needs to be lazy-evaled because vue may be required before
+	// vue-server-renderer can set VUE_ENV
+	// vue 服务器渲染 可以设置 VUE_ENV
+	var _isServer;
+	// 判断是不是node服务器环境
+	var isServerRendering = function() {
+		if (_isServer === undefined) {
+			/* istanbul ignore if */
+			// 如果不是浏览器并且global对象存在，那么有可能是node脚本
+			if (!inBrowser && typeof global !== 'undefined') {
+				// 检测vue-server-renderer的存在并加以避免
+				// detect presence of vvue-server-renderer and avoid
+				// Webpack shimming the process
+				// _isServeer 设置是服务器渲染
+				_isServer = global['process'].env.VUE_ENV === 'server';
+			} else {
+				_isServer = false
+			}
+		}
+		return _isServer
+	};
+	
+	// detect devtools
+	// 检测开发者工具
+	var devtools = inBrowser && window.__VUE_DEVTOOLS_GLOBAL_HOOK__;
+	
+	/* istanbul ignore next */
+	function isNative(Ctor) {
+		// 或者判断该函数不是说系统内置函数
+		// 判断一个函数中是否含有 'native code' 字符串，比如
+		return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
+	}
+	
+	// 判断是否支持Symbol数据类型
+	var hasSymbol =
+		// Symbol  es6新出来的一种数据类型，类似于string类型，声明唯一的数据值
+		typeof Symbol !== 'undefined' && isNative(Symbol) &&
+		// Reflect.ownKeys
+		// Reflect.ownKeys方法用于返回对象的所有属性，基本等同于Object.getOwnPropertyNames与Object.getOwnPropertySymbols之和
+		typeof Reflect !== 'undefined' && isNative(Reflect.ownKeys);
+		
+	var _Set;
+	/**
+	 * ES6
+	 */
 	
 })))
 
