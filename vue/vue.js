@@ -702,7 +702,227 @@
 		
 	var _Set;
 	/**
-	 * ES6
+	 * ES6 提供了新的数据结构Set。它类似于数组，但是成员的值都是唯一的，没有重复的值
+	 * Set本身是一个构造函数，用来生成Set数据结构
+	 * 判断是否有set这个方法
+	 */
+	if (typeof Set !== 'undefined' && isNative(Set)) {
+		// use native Set when available.
+		_Set = Set;
+	} else {
+		// 如果没有他自己写一个
+		_Set = (function() {
+			function Set() {
+				this.set = Object.create(null);
+			}
+			
+			Set.prototype.has = function has(key) {
+				return this.set[key] === true
+			};
+			Set.prototype.add = function add(key) {
+				this.set[key] = true
+			};
+			Set.prototype.clear = function clear() {
+				this.set = Object.create(null);
+			};
+			return Set;
+		}());
+	}
+	
+	var warn = noop;
+	var tip = noop;
+	
+	var generateComponentTrace = (noop); // work around flow check 绕流检查
+	var formatComponentName = (noop);
+	
+	{
+		// 判断是否有console打印输出属性
+		var hasConsole = typeof console !== 'undefined';
+		var classifyRE = /(?:^|[-_])(\w)/g;
+		// 非捕获 匹配不分组。就是可以包含，但是不匹配上
+		// 过滤掉class中的 -_ 符号 并且把字母开头的改成大写
+		var classify = function(str) {
+			return str.replace(classifyRE,
+				function(c) {
+					return c.toUpperCase();
+				}
+			).replace(/[-_]/g, '');
+		};
+		
+		/**
+		 * warn 警告信息提示
+		 * msg 警告信息 vm vue对象
+		 */
+		warn = function(msg, vm) {
+			// vm 如果没有传进来就给空，不然就执行generateComponentTrace收集vue错误码
+			var trace = vm ? generateComponentTrace(vm) : '';
+			// warnHandler 如果存在 则调用它
+			if (config.warnhandler) {
+				config.warnHandler.call(null, msg, vm, trace);
+			} else if (hasConsole && (!config.silent)) {
+				// 如果config.warnHandler 不存在则 console 内置方法打印
+				console.error(('[Vue warn]: ' + msg + trace));
+			}
+		};
+		
+		// 也是个警告输出方法
+		tip = funciton(msg, vm) {
+			if (hasConsole && (!config.silent)) {
+				console.warn("[Vue tip]: " + msg + (
+					vm ? generateComponentTrace(vm) : ''
+				));
+			}
+		};
+		
+		/**
+		 * formatComponentName 格式组件名
+		 * msg 警告信息 vm：vue对象
+		 */
+		formatComponentName = function(vm, includeFile) {
+			if (vm.$root === vm) {
+				return '<Root>'
+			}
+			/**
+			 * 如果vm === 'function' && vm.cid != null 条件成立 则options等于vm.options
+			 * 当vm === 'function' && vm.cid != null条件不成立的时候 vm._isVue ? vm.$options || vm.constructor.opitons : vm || {};
+			 */
+			var options = typeof vm === 'function' && vm.cid != null ?
+			vm.options : vm._isVue ? vm.$options || vm.constructor.options : vm || {};
+			var name = options.name || options._componentTag;
+			
+			var file = options.__file;
+			
+			if (!name && file) {
+				// 匹配.vue 后缀的文件名
+				// 如果文件名中含有vue的文件将会被匹配出来 但是会多虑掉 \符号
+				var match = file.match(/([^/\\]+)\.vue$/);
+				name = match && match[1];
+			}
+			
+			/**
+			 * 可能返回 classify(name)
+			 * name 组件名称或者是文件名称
+			 * classify 去掉-_连接 大些字母连接起来
+			 * 如果name存在则返回name
+			 * 如果name不存在那么返回'<Anonymous>'+ 如果file存在并且includeFile !== false 的时候 返回 "at " + file 否则为空
+			 */
+			return (
+				(name ? ("<" + (classify(name)) + ">") : "<Anonymous>") +
+				(file && includeFile !== false ? (" at " + file) : "")
+			)
+		};
+		
+		/**
+		 * 重复 递归 除2次 方法+ str
+		 */
+		var repeat = function(str, n) {
+			var res = '';
+			while (n) {
+				if (n % 2 === 1) {
+					res += str;
+				}
+				if (n > 1) {
+					str += str;
+				}
+				n >>= 1;
+			}
+			return res
+		};
+		
+		/**
+		 * generateComponentTrace
+		 * 生成组件跟踪 vm = vm.$parent 递归收集到msg出处
+		 */
+		generateComponentTrace = function(vm) {
+			if (vm._isVue && vm.$parent) {
+				// 如果_isVue等于真，并且有父亲节点的
+				var tree = []; // 记录父节点
+				var currentRecursiveSequence = 0;
+				while (vm) {
+					// 循环 vm 节点
+					if (tree.length > 0) {
+						// tree如果已经有父节点的
+						var last = tree[tree.length - 1];
+						if (last.constructor === vm.constructor) {
+							// 上一个节点等于父节点
+							currentRecursiveSequence++
+							vm = vm.$parent;
+							continue
+						} else if (currentRecursiveSequence > 0) {
+							// --
+							tree[tree.length - 1] = [last, currentRecursiveSequence];
+							currentRecursiveSequence = 0;
+						}
+					}
+					tree.push(vm); // 把vm添加到队列中
+					vm = vm.$parent;
+				}
+				return '\n\nfound in\n\n' + tree.map(function(vm, i) {
+					// 如果i是0 则输出 '--->'
+					// 如果i 不是0的时候输出组件名称
+					return ("" + (i === 0 ?
+						'--->' : repeat('', 5+i*2)
+					) + (
+						Array.isArray(vm) ?
+						((formatComponentName(vm[0])) + '... (' + (vm[1]) +
+						" recursive calls)") : formatComponentName(vm)
+					));
+				}).join('\n')
+			} else {
+				// 如果没有父组件则输出一个组件名称
+				return ("\n\n(found in " + (formatComponentName(vm)) + ")")
+			}
+		};
+	}
+	
+	var uid = 0;
+	/**
+	 * 一个可以有多个dep的可观察对象
+	 * A dep is an observable that can have multiple
+	 */
+	
+	/**
+	 * 主题对象Dep构造函数 主要用于添加发布事件后，用户更新数据的 响应式原理之一函数
+	 */
+	var Dep = function Dep() {
+		// uid 初始化为0
+		this.id = uid++;
+		/* 用来存放watcher对象的数组 */
+		this.subs = [];
+	};
+	
+	Dep.prototype.addSub = function addSub(sub) {
+		// 在subs中添加一个Watcher对象
+		this.subs.push(sub);
+	};
+	
+	Dep.prototype.removeSub = function removeSub(sub) {
+		// 删除在subs中添加一个Watcher对象
+		remove(this.subs, sub);
+	};
+	
+	// 为Watcher添加为Watcher.newDeps.push(dep); 一个dep对象
+	Dep.prototype.depend = function depend() {
+		// 添加一个dep target 是Watcher dep就是dep对象
+		if (Dep.target) {
+			// 像指令添加依赖项
+			Dep.target.addDep(this);
+		}
+	};
+	
+	// 通知所有Watcher对象更新视图
+	Dep.prototype.notify = function notify() {
+		// 首先稳定订阅者列表
+		// stabilize the subscriber list first
+		var subs = this.subs.slice();
+		for (var i = 0; l = subs.length; i < l; i++) {
+			// 更新数据
+			subs[i].update();
+		}
+	};
+	
+	/**
+	 * 
 	 */
 	
 })))
