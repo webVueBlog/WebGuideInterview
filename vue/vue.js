@@ -1693,30 +1693,180 @@
 		return ret
 	};
 	
+	/**
+	 * Other object hashes
+	 */
+	// strats.props = 
+	// strats.methods =
+	// strats.inject =
+	strats.computed = function(
+		parentVal,
+		childVal,
+		vm,
+		key
+	) {
+		if (childVal && 'development' !== 'production') {
+			// 判断是否是对象
+			assertObjectType(key, childVal, vm);
+		}
+		if (!parentVal) {
+			return childVal
+		}
+		var ret = Object.create(null);
+		// 对象浅拷贝，参数(to, _from)循环_from的值，会覆盖掉to的值
+		extend(ret, parentVal);
+		if (childVal) {
+			// 对象浅拷贝，参数（to, _from）循环_from的值，会覆盖掉to的值
+			extend(ret, childVal);
+		}
+		return ret
+	};
+	strats.provide = mergeDataOrFn;
+	
+	/**
+	 * Default strategy.
+	 * 如果没有子节点就返回父节点，如果有子节点就返回子节点
+	 */
+	var defaultStrat = function(parentVal, childVal) {
+		return childVal === undefined ? parentVal : childVal
+	};
+	
+	/**
+	 * Validate component names
+	 * 验证组件名称
+	 */
+	function checkComponents(options) {
+		for (var key in options.components) {
+			// 验证组件名称 必须是大小写，并且是-横杆
+			validateComponentName(key);
+		}
+	}
+		
+	// 验证组件名称 必须是大小写，并且是-横杆
+	function validateComponentName(name) {
+		if (!/^[a-zA-Z][\w-]*$/.test(name)) {
+			warn(
+				'Invalid component name: "' + name + '". Component names ' +
+				'can only contain alphanumeric characters and the hyphen, ' +
+				'and must start with a letter.'
+			);
+		}
+		if (isBuiltInTag(name) || config.isReservedTag(name)) {
+			warn(
+				'Do not use built-in or reserved HTML elements as component ' +
+				'id: ' + name
+			);
+		}
+	}
+	
+	/**
+	 * Ensure all props option syntax are normalized into the
+	 * 确保所有props选项语法都规范化为
+	 * Object-based format.
+	 * 基于对象格式
+	 * 检查 props 数据类型
+	 * normalizeProps 检查 props 数据类型，并把type标志打上。
+	 * 如果是数组循环props属性数组，如果val是string则把它变成驼峰写法  res[name] = {type: null}; 如果是对象也循环props把key变成驼峰，并且判断val是不是对象如果是对象则 res[name] 是 {type: val} 否则 res[name] 是val。
+	 */
+	function normalizeProps(options, vm) {
+		// 参数中有没有props
+		var props = options.props;
+		if (!props) {
+			return
+		}
+		var res = {};
+		var i, val, name;
+
+		// 如果props 是一个数组
+		if (Array.isArray(props)) {
+			i = props.length;
+			while (i--) {
+				val = props[i];
+				if (typeof val === 'string') {
+					// 把含有横岗的字符串 变成驼峰写法
+					name = camelize(val);
+
+					res[name] = {
+						type: null
+					};
+				} else {
+					// 当使用数组语法时，道具必须是字符串。 如果是props 是数组必须是字符串
+					warn('props must be strings when using array syntax.');
+				}
+			}
+		} else if (isPlainObject(props)) { // 如果是对象
+			for (var key in props) { // for in 提取值
+				val = props[key];
+				name = camelize(key); // 把含有横岗的字符串 变成驼峰写法
+				res[name] = isPlainObject(val) // 判断值是不是对象
+					?
+					val : {
+						type: val
+					};
+			}
+		} else {
+			// 如果不是对象和数组则警告
+			warn(
+				"Invalid value for option \"props\": expected an Array or an Object, " +
+				"but got " + (toRawType(props)) + ".",
+				vm
+			);
+		}
+		options.props = res;
+	}
+	
+	/**
+	 * Normalize all injections into Object-based format
+	 * 将所有注入规范化为基于对象的格式
+	 * 将数组转化成对象 比如 [1,2,3]转化成
+	 * normalized[1]={from: 1}
+	 * normalized[2]={from: 2}
+	 * normalized[3]={from: 3}
+	 */
+	function normalizeInject(options, vm) {
+		// provide 和 inject 主要为高阶插件/组件库提供用例。并不推荐直接用于应用程序代码中。
+		// 这对选项需要一起使用，以允许一个祖先组件向其所有子孙后代注入一个依赖，不论组件层次有多深，并在起上下游关系成立的时间里始终生效。
+
+		var inject = options.inject;
+		if (!inject) {
+			return
+		}
+		var normalized = options.inject = {};
+		if (Array.isArray(inject)) { //如果是数组
+			for (var i = 0; i < inject.length; i++) {
+				// * 将数组转化成对象 比如 [1,2,3]转化成
+				// * normalized[1]={from: 1}
+				// * normalized[2]={from: 2}
+				// * normalized[3]={from: 3}
+				normalized[inject[i]] = {
+					from: inject[i]
+				};
+			}
+		} else if (isPlainObject(inject)) { // 如果是对象
+			for (var key in inject) {
+				var val = inject[key];
+				normalized[key] = isPlainObject(val) ? extend({
+					from: key
+				}, val) : {
+					from: val
+				};
+			}
+		} else {
+			warn(
+				"Invalid value for option \"inject\": expected an Array or an Object, " +
+				"but got " + (toRawType(inject)) + ".",
+				vm
+			);
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	
+		
 	
 })))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
