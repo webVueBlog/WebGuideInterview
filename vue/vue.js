@@ -642,7 +642,7 @@
 	var isChrome = UA && /chrome\/\d+/.test(UA) && !isEdge; // 谷歌浏览器
 	
 	// Firefox has a 'watch' function on Object.prototype...
-	var nativeWathc = ({}).watch;
+	var nativeWatch = ({}).watch;
 	
 	// 兼容火狐浏览器写法
 	var supportsPassive = false;
@@ -1240,7 +1240,458 @@
 	 * 复制扩充 定义添加属性 并且添加 监听
 	 * target 目标对象 src 对象 keys 数组keys
 	 */
+	function copyAugment(target, src, keys) {
+		for (var i = 0, l = keys.length; i < l; i++) {
+			var key = keys[i]
+			def(target, key, src[key]);
+		}
+	}
 	
+	/**
+	 * Attempt to create an observer instance for a value,
+	 * returns the new observer if successfully observed,
+	 * or the existing observer if the value already has one.
+	 * 尝试为值创建一个观察者实例
+	 * 如果成功观察，返回新的观察者
+	 * 或现有的观察者，如果值已经有一个
+	 * 判断value 是否有__ob__ 实例化dep对象，获取dep对象 为value添加__ob__属性，返回 new Observer 实例化的对象
+	 */
+	function observe(value, asRootData) {
+		if (!isObject(value) || value instanceof VNode) {
+			// value 不是一个对象 或者 实例化的 VNode
+			return
+		}
+		var ob;
+		if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
+			ob = value.__ob__;
+		} else if (
+			shouldObserve && // shouldObserve 为真
+			!isServerRendering() && // 并且不是在服务器node环境下
+			(Array.isArray(value) || isPlainObject(value)) && // 是数组或者是对象
+			Object.isExtensible(value) &&
+			// Object.preventExtensions(0) 方法用于锁住对象属性，使其不能拓展，也就是不能增加新的属性，但是属性的值仍然可以更改，也可以把属性删除，Object.isExtensible用于判断是否可以被拓展
+			!value._isVue // _isVue为假
+		) {
+			// 实例化 dep对象 为 value 添加 __ob__ 属性
+			ob = new Observer(value)
+		}
+		// 如果是RootData，即咱们在新建Vue实例时，传到data里的值，只有RootData在每次observe的时候，会进行计数。vmCount是用来记录此Vue实例被使用的次数的，比如，我们有一个组件logo，页面头部和尾部都需要展示logo，都用了这个组件，那么这个时候vmCount就会计数，值为2
+		if (asRootData && ob) {
+			// 是根节点数据的话，并且ob存在
+			ob.vmCount++; // 统计有几个vm
+		}
+		// 实例化dep对象，获取dep对象 为value添加__ob__属性
+		return ob
+	}
+	
+	/**
+	 * Define a reactive property on an Object.
+	 * 在对象上定义一个无功属性。
+	 * 更新数据
+	 * 通过defineProperty的set方法去通知notify()订阅者subscribers有新的值修改
+	 * 添加观察者 get set 方法
+	 */
+	function defineReactive(obj, // 对象
+		key, // 对象的key
+		val, //监听的数据 返回的数据
+		customSetter, // 日志函数
+		shallow // 是否要添加 __ob__ 属性
+	) {
+		// 实例化一个主题对象，对象中有空的观察者列表
+		var dep = new Dep();
+		// 获取描述属性
+		var property = Object.getOwnPropertyDescriptor(obj, key);
+		var _property = Object.getOwnPropertyNames(obj); // 获取实力对象属性或者方法，包括定义的描述属性
+		if (property && property.configurable === false) {
+			return
+		}
+		
+		// cater for pre-defined getter/setters
+		var getter = property && property.get;
+		
+		if (!getter && arguments.length === 2) {
+			val = obj[key];
+		}
+		var setter = property && property.set;
+		// 判断value 是否有__ob__ 实例化dep对象，获取dep对象，为value添加__ob__属性递归把val添加到观察者中 返回new Observer实例化的对象
+		var childOb = !shallow && observe(val);
+		// 定义描述
+		Object.defineProperty(obj, key, {
+			enumerable: true,
+			configurable: true,
+			get: function reactiveGetter() {
+				var value = getter ? getter.call(obj) : val;
+				if (Dep.target) {
+					// Dep.target 静态标志 标志了Dep添加了Watcher 实例化的对象
+					// 添加一个dep
+					dep.depend();
+					if (childOb) {
+						// 如果子节点存在也添加一个dep
+						childOb.dep.depend();
+						if (Array.isArray(value)) {
+							// 判断是否是数组 如果是数组
+							dependArray(value); // 则数组也添加dep
+						}
+					}
+				}
+				return value
+			},
+			set: function reactiveSetter(newVal) {
+				var value = getter ? getter.call(obj) : val;
+				if (newVal === value || (newVal !== newVal && value !== value)) {
+					// 新旧值比较 如果是一样则不执行了
+					return
+				}
+				/**
+				 * 不是生产环境的情况下
+				 */
+				if ('development' !== 'production' && customSetter) {
+					customSetter();
+				}
+				if (setter) {
+					// set方法 设置新的值
+					setter.call(obj, newVal);
+				} else {
+					// 新的值直接给他
+					val = newVal;
+				}
+				// observe 添加 观察者
+				childOb = !shallow && observe(newVal);
+				// 更新数据
+				dep.notify();
+			}
+		});
+	}
+	
+	/**
+	 * Set a property on an object. Adds the new property and
+	 * triggers change notification if the property doesn't
+	 * already exist
+	 * 在对象上设置属性。添加新属性和触发器更改通知，如果该属性不已经存在
+	 * 如果是数组 并且key是数字，就更新数组
+	 * 如果是对象则重新赋值
+	 * 如果(target).__ob__ 存在则表明该数据以前添加过观察者对象中
+	 * 通知订阅者ob.value更新数据 添加观察者 define set get 方法
+	 */
+	function set(target, key, val) {
+		if ('development' !== 'production' &&
+			// 判断数据 是否是undefined或者null
+			(isUndef(target) || isPrimitive(target)) // 判断数据类型是否是striing, number, symbol, boolean
+		) {
+			// 必须是对象数组才可以 否则发出警告
+			warn(('Cannot set reactive property on undefined, null, or primitive value:' + (target)))
+		}
+		// 如果是数组 并且key是数字
+		if (Array.isArray(target) && isValidArrayIndex(key)) {
+			// 设置数组的长度
+			target.length = Math.max(target.length, key);
+			// 像数组尾部添加一个新数据，相当于push
+			target.splice(key, 1, val);
+			return val
+		}
+		// 判断key是否在target上，并且不是在Object.prototype原型上，而不是通过父层原型链查找的
+		if (key in target && !(key in Object.prototype)) {
+			target[key] = val; // 赋值
+			return val
+		}
+		var ob = (target).__ob__; // 声明一个对象ob 值为该target对象中的原型上面的所有方法和属性，表明该数据加入过观察者中
+		// vmCount 记录vue被实例化的次数
+		// 是不是vue
+		if (target._isVue || (ob && ob.vmCount)) {
+			// 如果不是生产环境，发出警告
+			'development' !== 'production' && warn(
+			'Avoid adding reactive properties to a Vue instance or its root $data ' + 'at runtime - declare it upfront in the data option.'
+			);
+			return val
+		}
+		// 如果ob不存在 说明他没有添加观察者 则直接赋值
+		if (!ob) {
+			target[key] = val;
+			return val
+		}
+		// 通知订阅者ob.value更新数据 添加观察者 deine set get 方法
+		defineReactive(ob.value, key, val);
+		// 通知订阅者ob.value更新数据
+		ob.dep.notify();
+		return val
+	}
+	
+	/**
+	 * Delete a property and trigger change if necessary.
+	 * 删除属性并在必要触发更改数据
+	 */
+	function del(target, key) {
+		// 如果不是生产环境
+		if ('development' !== 'production' &&
+			(isUndef(target) || isPrimitive(target))
+		) {
+			// 无法删除未定义的，空的或原始值的无功属性
+			warn(('Cannot delete reactive property on undefined, null, or primitive value: ' + (target)))
+		}
+		// 如果是数据则用splice方法删除
+		if (Array.isArray(target) && isValidArrayIndex(key)) {
+			target.splice(key, 1)
+			return
+		}
+		var ob = (target).__ob__;
+		// vmCount记录vue被实例化的次数
+		// 是不是vue
+		if (target._isVue || (ob && ob.vmCount)) {
+			// 如果是开发环境就警告
+			'development' !== 'production' && warn(
+				'Avoid deleting properties on a Vue instance or its root $data ' + '- just set it to null.'
+			);
+			return
+		}
+		// 如果不是target 实例化不删除原型方法
+		if (!hasOwn(target, key)) {
+			return
+		}
+		// 删除对象中的属性或者方法
+		delete target[key];
+		if (!ob) {
+			return
+		}
+		// 更新数据
+		ob.dep.notify();
+	}
+	
+	/**
+	 * Collect dependencies on array elements when the array is touched, since we cannot intercept array element access like property getters.
+	 * 在数组被触发时，收集数组元素的依赖关系，因为我们不能拦截数组元素访问，如属性吸收器。参数时数组。
+	 */
+	function dependArray(value) {
+		for (var e = (void 0), i = 0, l = value.length; i < l; i++) {
+			e = value[i];
+			// 添加一个dep
+			e && e.__ob__ && e.__ob__.dep.depend();
+			// 递归
+			if (Array.isArray(e)) {
+				dependArray(e);
+			}
+		}
+	}
+	
+	/**
+	 * Option overwriting strategies are functions that handle
+	 * how to merge a parent option value and a child option
+	 * value into the final value.
+	 * 选项重写策略是处理的函数
+	 * 如何合并父选项值和子选项
+	 * 值为最终值。
+	 */
+	var strats = config.optionMergeStrategies;
+	
+	/**
+	 * Options with restrictions
+	 * 选择与限制
+	 */
+	{
+		strats.el = strats.propsData = function(parent, child, vm, key) {
+			if (!vm) {
+				warn(
+					'option \"' + key + '\" can only be used during instance ' + 'creation with the `new` keyword.'
+				);
+			}
+			// 默认开始
+			return defaultStrat(parent, child)
+		};
+	}
+	
+	/**
+	 * Helper that recursively merges two data objects together.
+	 * 递归合并数据 深度拷贝
+	 */
+	function mergeData(to, from) {
+		if (!from) {
+			return to
+		}
+		var key, toVal, fromVal;
+		var keys = Object.keys(from); // 获取对象的keys变成数组
+		for (var i = 0; i < keys.length; i++) {
+			key = keys[i]; // 获取对象的key
+			toVal = to[key];
+			fromVal = from[key]; // 获取对象的值
+			if (!hasOwn(to, key)) {
+				// 如果from对象的key在to对象中没有
+				set(to, key, fromVal);
+			} else if (isPlainObject(toVal) && isPlainObject(fromVal)) {
+				// 深层递归
+				mergeData(toVal, fromVal);
+			}
+		}
+		return to
+	}
+	
+	/**
+	 * mergeDataOrFn递归合并数据 深度拷贝。如果vm不存在，并且childVal不存在就返回parentVal. 如果vm不存在并且parentVal不存在则返回childVal。如果vm不存在parentVal和childVal都存在则返回mergedDataFn。如果vm存在则返回 mergedInstanceDataFn 函数
+	 */
+	function mergeDataOrFn(
+		parentVal,
+		childVal,
+		vm
+	) {
+		// vm不存在的时候
+		if (!vm) {
+			// in a Vue.extend merge, both should be functions Vue.
+			// 扩展合并，两者都应该是函数
+			if (!childVal) {
+				return parentVal
+			}
+			if (!parentVal) {
+				return childVal
+			}
+			/**
+			 * when parentVal & childVal are both present
+			 * we need to return a function that returns the
+			 * merged result of both functions... no need to
+			 * check if parentVal is a function here because
+			 * it has to be a function to pass previous merges
+			 * 当父母和孩子都在场时，
+			 * 我们需要返回一个函数，该函数返回
+			 * 两个函数的合并结果...不需要
+			 * 检查parentVal是否是一个函数，因为
+			 * 它必须是一个函数来传递以前的合并
+			 */
+			return function mergedDataFn() {
+				// 如果childVal, parentVal是函数 先改变this
+				return mergeData(
+					typeof childVal === 'function' ? childVal.call(this, this) : childVal,
+					typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
+				)
+			}
+		} else  {
+			// 如果vm 存在 则是合并vm的数据
+			return function mergedInstanceDataFn() {
+				var instanceData = typeof childVal === 'function' ?
+				childVal.call(vm, vm) :
+				childVal;
+				
+				var defaultData = typeof parentVal === 'function' ?
+				parentVal.call(vm, vm) :
+				parentVal;
+				
+				if (instanceData) {
+					return mergeData(instanceData, defaultData)
+				} else {
+					return defaultData
+				}
+			}
+		}
+	}
+	
+	strats.data = function(
+		parentVal,
+		childVal,
+		vm
+	) {
+		if (!vm) {
+			if (childVal && typeof childVal !== 'function') {
+				'development' !== 'production' && warn(
+				'The "data" option should be a function ' +
+				'that returns a per-instance value in component ' +
+				'definitions.',
+				vm
+				);
+				return parentVal
+			}
+			return mergeDataOrFn(parentVal, childVal)
+		}
+		return mergeDataOrFn(parentVal, childVal, vm)
+	};
+	
+	/**
+	 * Hooks and props are merged as arrays
+	 * 构子和道具被合并成数组
+	 * 判断childVal 存在么？如果不存在 则返回parentVal
+	 * 如果childVal 存在 则判断parentVal存在么。如果parentVal存在则返回parentVal.concat(childVal), 如果不存在，则判断childVal是不是数组如果是数组直接返回去，
+	 * 如果不是数组把childVal变成数组在返回出去
+	 */
+	function mergeHook(
+		parentVal,
+		childVal
+	) {
+		return childVal ? (parentVal ? parentVal.concat(childVal) : (Array.isArray(childVal) ? childVal : [childVal])) : parentVal
+	}
+	
+	LIFECYCLE_HOOKS.forEach(function(hook) {
+		strats[hook] = mergeHook;
+	});
+	
+	/**
+	 * When a vm is present (instance creation), we need to do
+	 * a three-way merge between constructor options, instance
+	 * options and parent options.
+	 * 当存在虚拟机(实例创建)时，我们需要做
+	 * 构造函数选项之间的三路合并，实例
+	 * 选项和父选项
+	 * 创建一个res对象，获取parentVal对象中的数据。如果parentVal存在则获取parentVal对象的数据存在res 中的__props__中，如果没有则创建一个空的对象。
+	 * 如果childVal存在，则用浅拷贝，childVal合并到res中，返回res对象
+	 */
+	function mergeAssets(parentVal, childVal, vm, key) {
+		var res = Object.create(parentVal || null);
+		if (childVal) {
+			'development' !== 'production' && assertObjectType(key, childVal, vm);
+			return extend(res, childVal)
+		} else {
+			return res
+		}
+	}
+	
+	// 为每一个组件指令添加一个
+	ASSET_TYPES.forEach(function(type) {
+		strats[type + 's'] = mergeAssets;
+	});
+	
+	/**
+	 * Watchers
+	 * Watchers hashes should not overwrite one
+	 * another, so we merge them as arrays.
+	 * 观察者散列不应该覆盖一个
+	 * 另一个，我们将它们合并为数组
+	 * 循环childVal。获取到子节点childVal的key如果在父亲节点上面有，则先获取到父亲节点的值，如果父亲节点的上没有值获取子节点的值。变成数组存在ret对象中。
+	 */
+	strats.watch = function(
+		parentVal, // 父节点值
+		childVal, // 子节点值
+		vm, // vm vue实例化的对象
+		key // key值
+	) {
+		// work around Firefox's Object.prototype.watch... 在Firefox的对象周围工作。原型
+		if (parentVal === nativeWatch) {
+			parentVal = undefined;
+		}
+		if (childVal === nativeWatch) {
+			childVal = undefined;
+		}
+		if (!childVal) {
+			// 如果子节点不存在 则创建一个对象
+			return Object.create(parentVal || null)
+		}
+		{
+			// 检测childVal是不是对象
+			assertObjectType(key, childVal, vm);
+		}
+		if (!parentVal) {
+			// 如果父节点不存在，则返回子节点
+			return childVal
+		}
+		var ret = {};
+		extend(ret, parentVal); // 合并对象 一个新的对象
+		for (var key$1 in childVal) {
+			// 循环子节点
+			var parent = ret[key$1]; // 把子节点的key放到父节点中
+			var child = childVal[key$1]; // 获取子节点的值
+			if (parent && !Array.isArray(parent)) {
+				// 如果子节点的key放到父节点中能获取到子节点，并且子节点不是一个数组
+				parent = [parent];
+			}
+			ret[key$1] = parent ? parent.concat(child) :
+			Array.isArray(child) ?
+			child : [child];
+		}
+		return ret
+	};
 	
 	
 })))
