@@ -1,6 +1,6 @@
 /**
  * vue.js v2.5.16
- * @webVueBlog 手写版本
+ * @webVueBlog 手写版本 - 16000+代码
  * development 开发
  * production 生产
  * 兼容 amd cmd 模块写法
@@ -922,8 +922,283 @@
 	};
 	
 	/**
-	 * 
+	 * the current target watcher being evaluated.
+	 * this is globally unique because there could be only one
+	 * watcher being evaluated at any time
+	 * 当前正在评估的目标监视程序
+	 * 这在全球是独一无二的，因为只有一个
+	 * 观察者在任何时候都被评估
 	 */
+	Dep.target = null;
+	var targetStack = [];
+	
+	function pushTarget(_target) {
+		// target是Watcher dep就是dep对象
+		if (Dep.target) {
+			// 静态标志 Dep当前是否有添加了target
+			// 添加一个pushTarget
+			targetStack.push(Dep.target);
+		}
+		Dep.target = _target;
+	}
+	
+	function popTarget() {
+		// 出盏一个pushTarget
+		Dep.target = targetStack.pop();
+	}
+	
+	/**
+	 * 创建标准的vue vnode
+	 */
+	var VNode = function VNode(
+		tag, // 当前节点的标签名
+		data, // 当前节点对应的对象，包含了具体的一些数据信息，是一个VNodeData类型，可以参考VNodeData类型中的数据信息
+		children, // 子节点
+		text, // 文本
+		elm, // 当前节点的dom
+		context, // 编译作用域
+		componentOptions, // 组件的options选项
+		asyncFactory // 异步工厂
+	) {
+		//  当前节点的标签名
+		this.tag = tag;
+		
+		// 当前节点对应的对象，包含了具体的一些数据信息，是一个VNodeData类型，可以参考VNodeData类型中的数据信息
+		this.data = data;
+		
+		// 当前节点的子节点，是一个数组
+		this.children = children;
+		
+		// 当前节点的文本
+		this.text = text
+		
+		// 当前虚拟节点对应的真实dom节点
+		this.elm = elm;
+		
+		// 当前节点的名字空间
+		this.ns = undefined;
+		
+		// 编译作用域 vm
+		this.context = context;
+		this.fnContext = undefined;
+		this.fnOptions = undefined;
+		this.fnScopeId = undefined;
+		// 节点的key属性，被当作节点的标志，用以优化
+		this.key = data && data.key
+		
+		// 组件的option选项
+		this.componentOptions = componentOptions;
+		
+		// 当前节点对应的组件的实例
+		this.componentInstance = undefined;
+		
+		// 当前节点的父节点
+		this.parent = undefined;
+		
+		// 简而言之就是是否为原生HTML或只是普通文本，innerHTML的时候为true，textContent的时候为false
+		this.raw = false;
+		
+		// 静态节点标志
+		this.isStatic = false;
+		
+		// 是否作为跟节点插入
+		this.isRootInsert = true;
+		
+		// 是否为注释节点
+		this.isComment = false;
+		
+		// 是否为克隆节点
+		this.isCloned = false;
+		
+		// 是否有v-once指令
+		this.isOnce = false;
+		
+		// 异步工厂
+		this.asyncFactory = asyncFactory;
+		this.asyncMeta = undefined;
+		this.isAsyncPlaceholder = false;
+	};
+	// 当且仅当该属性描述符的类型可以被改变并且该属性可以从对应对象中删除。默认为false
+	var prototypeAccessors = {
+		child: {
+			configurable: true
+		}
+	};
+	
+	prototypeAccessors.child.get = function() {
+		return this.componentInstance
+	};
+	
+	Object.defineProperties(VNode.prototype, prototypeAccessorts);
+	
+	var createEmptyNode = function(text) {
+		if (text === void 0) text = '';
+		
+		var node = new VNode();
+		node.text = text;
+		node.isComment = true;
+		return node
+	};
+	
+	// 创建一个文本节点
+	function createTextVNode(val) {
+		return new VNode(
+			undefined,
+			undefined,
+			undefined,
+			String(val)
+		)
+	}
+	
+	/**
+	 * optimized shallow clone
+	 * used for static nodes and slot nodes because they may be reused across
+	 * multiple renders, cloning them avoids errors when DOM manipulations rely on their elm reference
+	 * 优化浅克隆
+	 * 用于静态节点和时隙节点，因为它们可以被重用。
+	 * 多重渲染，克隆它们避免DOM操作依赖时的错误
+	 */
+	function cloneVNode(vnode, deep) {
+		var componentOptions = vnode.componentOptions;
+		// 组件的options选项
+		var cloned = new VNode(
+			vnode.tag,
+			vnode.data,
+			vnode.children,
+			vnode.text,
+			vnode.elm,
+			vnode.comtext,
+			componentOptions,
+			vnode.asyncFactory
+		);
+		cloned.ns = vnode.ns; // 当前节点的名字空间
+		cloned.isStatic = vnode.isStatic; //静态节点标志
+		cloned.key = vnode.key; // 节点的key属性，被当作节点的标志，用以优化
+		cloned.isComment = vnode.isComment; // 是否为注释节点
+		cloned.fnContext = vnode.fnContext; // 函数上下文
+		cloned.fnOptions = vnode.fnOptions; // 函数Options选项
+		cloned.fnScopeId = vnode.fnScopeId; // 函数范围id
+		cloned.isCloned = true;
+		// 是否为克隆节点
+		if (deep) {
+			// 如果deep存在
+			if (vnode.children) {
+				// 如果有子节点
+				// 深度拷贝子节点
+				cloned.children = cloneVNodes(vnode.children, true);
+			}
+			if (componentOptions && componentOptions.children) {
+				// 深度拷贝子节点
+				componentOptions.children = cloneVNodes(componentOptions.child, true);
+			}
+		}
+		return cloned
+	}
+	
+	// 克隆多个节点 为数组的
+	function cloneVNodes(vnodes, deep) {
+		var len = vnodes.length;
+		var res = new Array(len);
+		for (var i = 0; i < len; i++) {
+			res[i] = cloneVNode(vnodes[i], deep);
+		}
+		return res
+	}
+	
+	// 没有类型检查该文件，因为流不能很好地发挥作用
+	// 动态访问数组原型的方法
+	var arrayProto = Array.prototype;
+	var arrayMethods = Object.create(arrayProto);
+	
+	var methodsToPatch = [
+		'push',
+		'pop',
+		'shift',
+		'unshift',
+		'splice',
+		'sort',
+		'reverse'
+	];
+	
+	/**
+	 * Intercept mutating methods and emit events
+	 * 更新数据时候如果是数组拦截方法，如果在数据中更新用的是‘push','pop','shift','unshift','splice','sort','reverse'方法则会调用这里
+	 */
+	methodsToPatch.forEach(function(method) {
+		var original = arrayProto[method];
+		def(arrayMethods, method, function mutator() {
+			var args = [], len = arguments.length;
+			while (len--) args[len] = arguments[len]
+			var result = original.apply(this, args);
+			var ob = this.__ob__;
+			var inserted;
+			switch(method) {
+				case 'push':
+				case 'unshift':
+					inserted = args;
+					break
+				case 'splice':
+					inserted = args.slice(2);
+					break
+			}
+			if (inserted) {
+				// 观察数组数据
+				ob.observeArray(inserted);
+			}
+			// notify change
+			// 更新通知
+			ob.dep.notify();
+			return result;
+		})
+	});
+	
+	/**
+	 * 方法返回一个由指定对象的所有自身属性的属性名（包括不可枚举属性但不包括Symbol值作为名称的属性）组成的数组，只包括实例化的属性和方法，不包括原型上的。
+	 */
+	var arrayKeys = Object.getOwnPropertyNames(arrayMethods);
+	
+	/**
+	 * In some cases we may want to disable observation inside a component's
+	 * update computation
+	 * 在某些情况下，我们可能希望禁用组件内部的观察
+	 * 更新计算
+	 */
+	var shouldObserve = true; // 标志是否禁止还是添加到观察者模式
+	function toggleObserving(value) {
+		shouldObserve = value;
+	}
+	
+	/**
+	 * Observer class that is attached to each observed
+	 * object. Once attached, the observer converts the target
+	 * object's property keys into getter / setters that
+	 * collect dependencies and dispatch updates.
+	 * 每个观察到的观察者类
+	 * 对象。一旦被连接，观察者就转换目标。
+	 * 对象的属性键为吸收器/设置器
+	 * 收集依赖关系并发发送更新。
+	 * 实例化 dep 对象，获取dep对象 为 value 添加 __ob__ 属性
+	 */
+	var Observer = function Observer(value) {
+		this.value = value;
+		this.dep = new Dep();
+		this.vmCount = 0;
+		// 设置监听，value 必须是对象
+		def(value, '__ob__', this);
+		if (Array.isArray(value)) {
+			// 判断是不是数组
+			var augment = hasProto // __proto__ 存在么 高级浏览器都会有这个
+				?
+				protoAugment :
+				copyAugment;
+				augment(value, arrayMethods, arrayKeys);
+				this.observeArray(value);
+		} else {
+			this.walk(value);
+		}
+	};
+	
+	
 	
 })))
 
