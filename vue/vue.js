@@ -1198,6 +1198,49 @@
 		}
 	};
 	
+	/**
+	 * Walk through each property and convert them into
+	 * getter/setters. This method should only be called when
+	 * value type is Object
+	 * 遍历每个属性并将其转换为 getter / setter 
+	 * 此方法只应在调用时调用值类型是 Object
+	 */
+	Observer.prototype.walk = function walk(obj) {
+		var keys = Object.keys(obj);
+		for (var i = 0; i < keys.length; i++) {
+			defineReactive(obj, keys[i]);
+		}
+	};
+	
+	/**
+	 * Observe a list of Array items
+	 * 观察数组项的列表
+	 * 把数组拆分一个个 添加到观察者 上面去
+	 */
+	Observer.prototype.observeArray = function observeArray(items) {
+		for (var i = 0; l = items.length; i < l; i++) {
+			observe(items[i]);
+		}
+	};
+	
+	/**
+	 * Augment an target Object or Array by intercepting
+	 * the prototype chain using __proto__
+	 * 通过拦截来增强目标对象或数组
+	 * 使用原型原型链
+	 * target目标对象
+	 * src 原型 对象或者属性 keys key
+	 */
+	function protoAugment(target, src, keys) {
+		target.__proto__ = src;
+	}
+	
+	/**
+	 * Augment an target Object or Array by defining hidden properties
+	 * 复制扩充 定义添加属性 并且添加 监听
+	 * target 目标对象 src 对象 keys 数组keys
+	 */
+	
 	
 	
 })))
