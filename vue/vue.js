@@ -1898,16 +1898,278 @@
 		}
 	}
 	
-	
-	
-	
-	
-	
-	
+	/**
+	 * Merge two option objects into a new one.
+	 * Core utility used in both instantiation and inheritance.
+	 * 将两个对象合成一个对象 将父值对象和子值对象合并在一起，并且优先取值子值，如果没有则取子值
+	 *
+	 * 用于实例化和继承的核心实用程序。
+	 */
+	/**
+	 * @param {Object} parent 父值
+	 * @param {Object} child 子值 优选取子值
+	 * @param {Object} vm
+	 */
+	function mergeOptions(parent, child, vm) {
+		{
+			// 检验子组件
+			checkComponents(child);
+		}
+		if (typeof child === 'function') {
+			// 如果child是函数则获取他的参数
+			child = child.options
+		}
+		// 检查props数据类型
+		normalizeProps(child, vm);
+		// 将数组转化成对象 比如 [1,2,3]转化成
+		normalizeInject(child, vm);
+		// normalizeDirectives 获取到指令对象值。循环对象指令的值，如果是函数则把它变成dirs[key] = {bind: def, update: def}这种形式
+		normalizeDirectives(child);
 		
-		
-		
-		
+		// 子组件是否有需要合并的对象继承方式
+		var extendsFrom = child.extends;
+		if (extendsFrom) {
+			// 如果有则递归
+			parent = mergeOptions(parent, extendsFrom, vm);
+		}
+		// 如果子组件有mixins数组则也递归合并，继承方式mixins必须是数组
+		if (child.mixins) {
+			for (var i = 0; l = child.mixins.length; i < l; i++) {
+				parent = mergeOptions(parent, child.mixins[i], vm);
+			}
+		}
+		var options = {};
+		var key;
+		for (key in parent) {
+			// 循环合并后的key
+			mergeField(key);
+		}
+		for (key in child) {
+			// 循环子组件的
+			if (!hasOwn(parent, key)) {
+				mergeField(key);
+			}
+		}
+		// 获取到key 去读取strats类的方法
+		// strats类 有方法el, propsData, data, provide, watch, props, methods, inject, computed, components, directive, filters
+		// strats类里面的方法都是 合并数据 如果没有子节点childVal
+		// 就返回父节点parentVal, 如果有子节点childVal就返回子节点childVal
+		function mergeField(key) {
+			// defaultStrat 获取子值还是父组件的值
+			var strat = strats[key] || defaultStrat; // 如果没有子节点就返回父节点，如果有子节点就返回子节点
+			// 获取子值还是父组件的值
+			options[key] = strat(parent[key], child[key], vm, key);
+		}
+		// 返回参数
+		return options
+	}
+	
+	/**
+	 * Resolve an asset.
+	 * This function is used because child instances need access
+	 * to assets defined in its ancestor chain.
+	 * 检测指令是否在 组件对象上面，返回注册指令或者组件的对象，包括检查directives，filters，components
+	 */
+	/**
+	 * @param {Object} options // 参数
+	 * @param {Object} type // 类型：directives, filters, components
+	 * @param {Object} id // 指令的key属性
+	 * @param {Object} warnMissing // 警告的信息true
+	 */
+	function resolveAsset(options, type, id, warnMissing) {
+		if (typeof id !== 'string') {
+			return
+		}
+		var assets = options[type];
+		// check local registration variations first
+		// 首先检查本地注册的变化 检查id是否是assets 实例化的属性或者方法
+		if (hasOwn(assets, id)) {
+			return assets[id]
+		}
+		// 可以让这样的的属性 v-model 变成 vModel  变成驼峰
+		var camelizedId = camelize(id);
+		// 检查camelizedId是否是assets 实例化的属性或者方法
+		if (hasOwn(assets, camelizedId)) {
+			return assets[camelizedId]
+		}
+		// 将首字母变成大写 变成 VModel
+		var PascalCaseId = capitalize(camelizedId);
+		// 检查PascalCaseId是否是assets实例化的属性或者方法
+		if (hasOwn(assets, PascalCaseId)) {
+			return assets[PascalCaseId]
+		}
+		// fallback to prototype chain  回到原型链
+		var res = assets[id] || assets[camelizedId] || assets[PascalCaseId];
+		// 如果检查不到id 实例化则如果是开发环境则警告
+		if ("development" !== 'production' && warnMissing && !res) {
+			warn(
+				'Failed to resolve ' + type.slice(0, -1) + ': ' + id,
+				options
+			);
+		}
+		// 返回注册指令或者组建的对象
+		return res
+	}
+	
+	/**
+	 *  验证 props 是否是规范数据
+	 * 并且为props 添加 value.__ob__  属性，把prosp添加到观察者中
+	 */
+	/**
+	 * @param {Object} key
+	 * @param {Object} propOptions 元素props 参数
+	 * @param {Object} propsData 转义过的组件props数据
+	 * @param {Object} vm VueComponent 组件构造函数
+	 */
+	function validateProp(key, propOptions, propsData, vm) {
+		var prop = propOptions[key]; //获取组件定义的props 属性
+		var absent = !hasOwn(propsData, key); // 如果该为假的那么可能  a-b 这样的key才能获取到值
+		var value = propsData[key]; // 获取值
+		// Boolean 传一个布尔值  但是 一般是函数或者数组函数才有意义，而且是函数声明的函数并不是 函数表达式prop.type 也需要是函数
+		// 返回的是相同的索引 判断 属性类型定义的是否是Boolean
+		var booleanIndex = getTypeIndex(Boolean, prop.type);
+		if (booleanIndex > -1) { //如果是boolean值
+			if (absent && !hasOwn(prop, 'default')) {
+				// 如果key 不是propsData 实例化，或者 没有定义default 默认值的时候   设置value 为false
+				value = false;
+			} else if  (value === '' || value === hyphenate(key)) {
+				// 如果value 是空 或者 key转出 - 形式和value 相等的时候
+				// only cast empty string / same name to boolean if 仅将空字符串/相同名称转换为boolean if
+				// boolean has higher priority  获取到相同的
+				// 判断prop.type 的类型是否是string字符串类型
+				var stringIndex = getTypeIndex(String, prop.type);
+				if (stringIndex < 0 || booleanIndex < stringIndex) {
+					// 如果匹配不到字符串 或者布尔值索引小于字符串 索引的时候
+					value = true;
+				}
+			}
+		}
+		// check default value 检查默认值
+		if (value === undefined) {
+			// 如果没有值 value 也不是boolean， 也不是string的时候
+			// 有可能是函数
+			value = getPropDefaultValue(vm, prop, key);
+			// since the default value is a fresh copy, 由于默认值是一个新的副本，
+			// make sure to observe it. 一定要遵守。
+			var prevShouldObserve = shouldObserve;
+			toggleObserving(true);
+			// 为 value添加 value.__ob__  属性，把value添加到观察者中
+			observe(value);
+			toggleObserving(prevShouldObserve);
+		} {
+			// 检查prop是否合格
+			/**
+			 * prop 属性的type值
+			 * key props属性中的key
+			 * value view属性的值
+			 * vm VueComponent 组件构造函数
+			 * absent false
+			 */
+			assertProp(prop, key, value, vm, absent);
+		}
+		return value
+	}
+	
+	/**
+	 * Get the default value of a prop.
+	 * 获取prop 属性默认的vue值
+	 */
+	function getPropDefaultValue(vm, prop, key) {
+		// no default, return undefined
+		// 判断该对象prop 中的default 是否是prop 实例化的
+		if (!hasOwn(prop, 'default')) {
+			return undefined
+		}
+		var def = prop.default;
+		// warn against non-factory defaults for Object & Array
+		// 警告对象和数组的非工厂默认值
+		if ('development' !== 'production' && isObject(def)) {
+			warn(
+				'Invalid default value for prop "' + key + '": ' +
+				'Props with type Object/Array must use a factory function ' +
+				'to return the default value.',
+				vm
+			);
+		}
+		// the raw prop value was also undefined from previous render,
+		// 原始PROP值也未从先前的渲染中定义，
+		// return previous default value to avoid unnecessary watcher trigger
+		// 返回先前的默认值以避免不必要的监视触发器
+		if (vm && vm.$options.propsData &&
+			vm.$options.propsData[key] === undefined &&
+			vm._props[key] !== undefined
+		) {
+			return vm._props[key]
+		}
+		// call factory function for non-Function types
+		// 非功能类型调用工厂函数
+		// a value is Function if its prototype is function even across different execution context
+		// 一个值是函数，即使它的原型在不同的执行上下文中也是函数
+		// getType检查函数是否是函数声明 如果是函数表达式或者匿名函数是匹配不上的
+		// 判断def是不是函数 如果是则执行，如果不是则返回props的PropDefaultValue
+		return typeof def === 'function' && getType(prop.type) !== 'Function' ? def.call(vm) : def
+	}
+	
+	/**
+	 * Assert whether a prop is valid.
+	 * 断言一个属性是否有效。
+	 * prop, //属性的type值
+	 * key, //props属性中的key
+	 * value, //view 属性的值
+	 * vm, //组件构造函数
+	 * absent //false
+	 */
+	function assertProp(prop, name, value, vm, absent) {
+		// 必须有required 和 absent
+		if (prop.required && absent) {
+			warn(
+				'Missing required prop: "' + name + '"',
+				vm
+			);
+			return
+		}
+		// 如果vual 为空 或者 不是必填项 则不执行下面代码
+		if (value == null && !prop.required) {
+			return
+		}
+		// 类型
+		var type = prop.type;
+		// 如果类型为真或者类型不存在
+		var valid = !type || type === true;
+		var expectedTypes = [];
+		if (type) {
+			// 如果type存在
+			if (!Array.isArray(type)) {
+				// 如果不是数组
+				type = [type]; // 再包裹成数组
+			}
+			for (var i = 0; i < type.length && !valid; i++) {
+				var assertedType = assertType(value, type[i]);
+				expectedTypes.push(assertedType.expectedType || '');
+				valid = assertedType.valid;
+			}
+		}
+		if (!valid) {
+			warn(
+				"Invalid prop: type check failed for prop \"" + name + "\"." +
+				" Expected " + (expectedTypes.map(capitalize).join(', ')) +
+				", got " + (toRawType(value)) + ".",
+				vm
+			);
+			return
+		}
+		var validator = prop.validator;
+		if (validator) {
+			if (!validator(value)) {
+				warn(
+					'Invalid prop: custom validator check failed for prop "' + name + '".',
+					vm
+				);
+			}
+		}
+	}
+	
+	// 检测数据类型 是否是String|Number|Boolean|Function|Symbol 其中的一个数据类型
 	
 })))
 
