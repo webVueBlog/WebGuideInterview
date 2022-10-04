@@ -2170,6 +2170,161 @@
 	}
 	
 	// 检测数据类型 是否是String|Number|Boolean|Function|Symbol 其中的一个数据类型
+	var simpleCheckRE = /^(String|Number|Boolean|Function|Symbol)$/;
+	
+	// 获取type类型
+	function assertType(value, type) {
+		var valid;
+		// getType检查函数是否是函数声明  如果是函数表达式或者匿名函数是匹配不上的
+		// type 必须是String|Number|Boolean|Function|Symbol 构造函数
+		var expectedType = getType(type);
+
+		// 检测改函数是什么类型
+		if (simpleCheckRE.test(
+				expectedType
+			)) { // type 必须是String|Number|Boolean|Function|Symbol 构造函数 这里才为真 (String|Number|Boolean|Function|Symbol)
+			var t = typeof value;
+			// 转换成小写
+			valid = t === expectedType.toLowerCase(); // 布尔值
+			// for primitive wrapper objects 对于原始包装对象
+			if (!valid && t === 'object') {
+				valid = value instanceof type;
+			}
+		} else if (expectedType === 'Object') {
+			// 检测是否是真正的对象
+			valid = isPlainObject(value);
+		} else if (expectedType === 'Array') {
+			// 检测是否是真正的数组
+			valid = Array.isArray(value);
+		} else {
+			// 判断 value 是否是type中的实例化对象
+			valid = value instanceof type;
+		}
+		// 返回出去值
+		return {
+			valid: valid,
+			expectedType: expectedType
+		}
+	}
+	
+	/**
+	 * Use function string name to check built-in types,
+	 * because a simple equality check will fail when running
+	 * across different vms / iframes.
+	 * 检查函数是否是函数声明  如果是函数表达式或者匿名函数是匹配不上的
+	 */
+	function getType(fn) {
+		var match = fn && fn.toString().match(/^\s*function (\w+)/);
+		return match ? match[1] : ''
+	}
+	
+	// 判断两个函数声明是否是相等
+	function isSameType(a, b) {
+		return getType(a) === getType(b)
+	}
+	
+	// 判断expectedTypes 中的函数和 type 函数是否有相等的如有有则返回索引index 如果没有则返回-1
+	function getTypeIndex(type, expectedTypes) {
+		// 如果不是数组直接比较 如果真则返回0
+		if (!Array.isArray(expectedTypes)) {
+			return isSameType(expectedTypes, type) ? 0 : -1
+		}
+		for (var i = 0, len = expectedTypes.length; i < len; i++) {
+			//如果是数组则寻找索引
+			if (isSameType(expectedTypes[i], type)) {
+				return i
+			}
+		}
+		return -1
+	}
+	
+	/**
+	 * 向外暴露了一个 handleError 方法，在需要捕获异常地方调用。
+	 * handleError 方法中首先获取到报错的组件，之后递归查找当前组件的父组件，
+	 * 依次调用 errorCaptured 方法。在遍历调用完所有 errorCaptured 方法、或 errorCaptured 方法有报错时，会调用 globalHandleError 方法。
+	 * globalHandleError 方法调用了全局的 errorHandler 方法。
+	 * 如果 errorHandler 方法自己又报错了呢？生产环境下会使用 console.error 在控制台中输出。
+	 * 可以看到errorCaptured和errorHandler的触发时机都是相同的，不同的是errorCaptured发生在前，且如果某个组件的errorCaptured方法返回了false，那么这个异常信息不会再向上冒泡也不会再调用errorHandler方法。
+	 */
+	function handleError(err, vm, info) {
+		if (vm) {
+			var cur = vm;
+			// 循环父组件
+			while ((cur = cur.$parent)) {
+				// 如果hooks 存在 则循环 所有的hooks
+				var hooks = cur.$options.errorCaptured;
+				if (hooks) {
+					for (var i = 0; i < hooks.length; i++) {
+						try {
+							// 调用hooks 中函数，如果发生错误则调用globalHandleError
+							var capture = hooks[i].call(cur, err, vm, info) === false;
+							if (capture) {
+								return
+							}
+						} catch (e) {
+							// 调用全局日志输出
+							globalHandleError(e, cur, 'errorCaptured hook');
+						}
+					}
+				}
+			}
+		}
+		// 调用全局日志输出
+		globalHandleError(err, vm, info);
+	}
+	
+	function globalHandleError(err, vm, info) {
+		// 如果errorHandler 存在 则调用 errorHandler函数
+		if (config.errorHandler) {
+			try {
+				return config.errorHandler.call(null, err, vm, info)
+			} catch (e) {
+				// 错误日志信息输出
+				logError(e, null, 'config.errorHandler');
+			}
+		}
+		logError(err, vm, info);
+	}
+	
+	// 错误日志信息输出
+	function logError(err, vm, info) {
+		{
+			warn(("Error in " + info + ": \"" + (err.toString()) + "\""), vm);
+		}
+		/* istanbul ignore else 如果是浏览器或者是 微信端，输出console */
+		if ((inBrowser || inWeex) && typeof console !== 'undefined') {
+			console.error(err);
+		} else {
+			// 如果是服务器端 则抛出错误
+			throw err
+		}
+	}
+	
+	/* globals MessageChannel 全局消息通道 */
+	// 回调函数队列
+	var callbacks = [];
+	var pending = false;
+	
+	// 触发 callbacks 队列中的函数
+	function flushCallbacks() {
+		pending = false;
+		//.slice(0) 浅拷贝
+		var copies = callbacks.slice(0);
+		callbacks.length = 0;
+		// console.log(copies)
+
+		for (var i = 0; i < copies.length; i++) {
+			//执行回调函数
+			copies[i]();
+		}
+	}
+	
+	/**
+	 * Here we have async deferring wrappers using both microtasks and (macro) tasks.
+	 * 在这里，我们使用了微任务和宏任务的异步包装器。
+	 */
+	
+	
 	
 })))
 
