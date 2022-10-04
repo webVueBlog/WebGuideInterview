@@ -1861,9 +1861,52 @@
 	}
 	
 	/**
-	 * 
+	 * Normalize raw function directives into object format.
+	 * 将原始函数指令归一化为对象格式。
+	 * normalizeDirectives 获取到指令对象值。
+	 * 循环对象指令的值，如果是函数则把它变成dirs[key] = {bind: def, update: def} 这种形式
 	 */
+	function normalizeDirectives(options) {
+		// 获取参数中的指令
+		var dirs = options.directives;
+		// console.log(options)
+
+		if (dirs) { // 如果指令存在
+			for (var key in dirs) { // 循环该指令
+				var def = dirs[key]; // 获取到指令的值
+				// console.log(def)
+
+				if (typeof def === 'function') { // 如果是函数
+					// 为该函数添加一个对象和值
+					dirs[key] = {
+						bind: def,
+						update: def
+					};
+				}
+			}
+		}
+	}
 	
+	// 判断是否是对象
+	function assertObjectType(name, value, vm) {
+		if (!isPlainObject(value)) {
+			warn(
+				"Invalid value for option \"" + name + "\": expected an Object, " +
+				"but got " + (toRawType(value)) + ".",
+				vm
+			);
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+		
+		
+		
 		
 	
 })))
