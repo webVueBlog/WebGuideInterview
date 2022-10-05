@@ -2322,9 +2322,111 @@
 	/**
 	 * Here we have async deferring wrappers using both microtasks and (macro) tasks.
 	 * 在这里，我们使用了微任务和宏任务的异步包装器。
+	 * In < 2.4 we used microtasks everywhere, but there are some scenarios where 
+	 * 在< 2.4中，我们到处使用微任务，但也有一些场景。
+	 * microtasks have too high a priority and fire in between supposedly
+	 * 微任务优先级太高，据称介于两者之间。
+	 * sequential events (e.g. #4521, #6690) or even between bubbling of the same 序贯事件（例如α4521，α6690），甚至在同一气泡之间
+	 * event (#6566). However, using (macro) tasks everywhere also has subtle problems 事件（α6566）。然而，到处使用（宏）任务也有微妙的问题。
+	 * when state is changed right before repaint (e.g. #6813, out-in transitions). 当状态在重新绘制之前被正确改变（例如，α6813，在过渡中出现）。
+	 * Here we use microtask by default, but expose a way to force (macro) task when  这里，我们默认使用微任务，但是暴露一种方法来强制（宏）任务
+	 * needed (e.g. in event handlers attached by v-on). 需要的（例如在事件处理程序中附加的V-on）。
 	 */
 	
+	var microTimerFunc; // 微计时器功能
+	var macroTimerFunc; // 宏计时器功能
+	var useMacroTask = false; // 使用宏任务
 	
+	/**
+	 * Determine (macro) task defer implementation. 确定（宏）任务延迟实现。
+	 * Technically setImmediate should be the ideal choice, but it's only available 技术上应该是理想的选择，但它是唯一可用的。
+	 * in IE. The only polyfill that consistently queues the callback after all DOM 
+	 * 在IE.中，唯一的填充在所有DOM之后始终排队回叫。
+	 * events triggered in the same loop is by using MessageChannel. 
+	 * 在同一循环中触发的事件是通过使用消息通道。
+	 * 判断setImmediate 是否存在，如果存在则判断下是是否是系统内置函数
+	 */
+	if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
+		// 函数表达式赋值给macroTimerFunc
+		macroTimerFunc = function() {
+			setImmediate(flushCallbacks);
+		};
+	} else if (typeof MessageChannel !== 'undefined' && (
+			isNative(MessageChannel) ||
+			// PhantomJS
+			MessageChannel.toString() === '[object MessageChannelConstructor]'
+		)) {
+		//如果有 消息体 内置函数则实例化
+		var channel = new MessageChannel();
+		//获取端口2
+		var port = channel.port2;
+
+		//设置端口1 的接受函数为flushCallbacks
+		channel.port1.onmessage = flushCallbacks;
+
+		//端口2推送信息给端口1
+		macroTimerFunc = function() {
+
+			port.postMessage(1);
+		};
+	} else {
+		/* istanbul ignore next */
+		// 异步执行
+		macroTimerFunc = function() {
+			setTimeout(flushCallbacks, 0);
+		};
+	}
+	
+	// Determine microtask defer implementation.
+	// 确定微任务延迟执行。
+	if (typeof Promise !== 'undefined' && isNative(Promise)) {
+		// 声明一个成功的Promise
+		var p = Promise.resolve();
+		// microTimerFunc 一个异步 队列函数
+		microTimerFunc = function() {
+			p.then(flushCallbacks);
+			/**
+			 * in problematic UIWebViews, Promise.then doesn't completely break, 
+			 * but 在有问题的UIWebVIEW中，Promise.then并没有完全崩溃，而是
+			 * it can get stuck in a weird state where callbacks are pushed into the 
+			 * 它可能会陷入一种怪异的状态，其中回调被推到
+			 * microtask queue but the queue isn't being flushed, until the browser 
+			 * 微任务队列，但队列没有刷新，直到浏览器
+			 * needs to do some other work, e.g. handle a timer. Therefore we can 
+			 * 需要做一些其他的工作，例如处理计时器。因此我们可以
+			 * "force" the microtask queue to be flushed by adding an empty timer. 
+			 * [强制]通过添加空计时器来刷新微任务队列。
+			 * 如果是ios 执行下 noop 空函数
+			 */
+			if (isIOS) {
+				setTimeout(noop);
+			}
+		};
+	} else {
+		// fallback to macro
+		// 回归宏
+		microTimerFunc = macroTimerFunc;
+	}
+	
+	/**
+	 * Wrap a function so that if any code inside triggers state change
+	 * 包装一个函数，如果内部的任何代码触发状态改变，
+	 * the changes are queued using a (macro) task instead of a microtask. 
+	 * 使用宏（宏）任务而不是微任务对这些队列进行排队
+	 */
+	function withMacroTask(fn) {
+		//宏任务
+		return fn._withTask || (fn._withTask = function() {
+			useMacroTask = true;
+			var res = fn.apply(null, arguments);
+			useMacroTask = false;
+			return res
+		})
+	}
+	
+	
+	
+
 	
 })))
 
