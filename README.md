@@ -8,10 +8,9 @@
 
 ## 提问让我们回答
 
-![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
-
 打开 新建 Issue 链接, 格式如下：
 
+![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
 
 
 ## 实践
