@@ -1,4 +1,11 @@
 2.6.14 版本 手写vue源码 添加注解
+
+## vue packages
+
+- vue-server-renderer
+- vue-template-compiler
+- weex-template-compiler
+- weex-vue-framework
  
 文件结构
 
@@ -22,7 +29,7 @@ compiler, core, platforms, shared
 
 在该文件中，会存在大量的高阶函数，充分学习到函数式编程的思想。
 
-codengen，主要功能是用AST生成render函数字符串。
+codegen，主要功能是用AST生成render函数字符串。
 
 directives，存放一些指令的处理逻辑，如 v-bind，v-model，v-on 等。
 
@@ -32,7 +39,7 @@ index，compiler 的入口文件
 
 optimizer，用来对 AST 做一些剪枝操作的标记处理，会在 codenden 和 vnode 的path中用到
 
-to-function，将 codengen 生成的 render 函数字符串用 new Function 的方式最终生成 render 函数。
+to-function，将 codegen 生成的 render 函数字符串用 new Function 的方式最终生成 render 函数。
 
 ## core(核心) 文件
 

@@ -12,7 +12,6 @@
 
 ![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
 
-
 ## 实践
 
 - [实现大文件上传和断点续传实践经验总结](https://github.com/webVueBlog/file-breakpoint-continue)
@@ -50,7 +49,6 @@
 - refactor: 代码重构时使用
 - revert: 执行git revert打印的message
 - test: 添加测试或者修改现有测试
-
 
 ## 勘误及提问
 
