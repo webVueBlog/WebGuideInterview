@@ -12,6 +12,10 @@
 
 ![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
 
+## 自己总结的一些文章系列
+
+- 从多线程到浏览器性能沉淀
+
 ## 实践
 
 - [实现大文件上传和断点续传实践经验总结](https://github.com/webVueBlog/file-breakpoint-continue)
