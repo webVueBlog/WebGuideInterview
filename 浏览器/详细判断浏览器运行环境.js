@@ -3,7 +3,7 @@
 /**
 Google Chrome：Windows、MacOS、Linux、Android、iOS
 Apple Safari：MacOS、iOS
-Mozilla Firefox：Windows、MacOS、Linux、Android、iOS
+Linux、Android、iOS
 ASA Opera：Windows、MacOS、Linux、Android、iOS
 Microsoft Internet Explorer或Microsoft Edge：Windows
 
