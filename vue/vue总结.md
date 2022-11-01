@@ -270,11 +270,312 @@ app.component('组件名', 组件对象)
 
 如果是 object 则需要定义一个 install 方法
 
+（1）props / $emit (父子)
+父组件通过props向子组件传递数据，子组件通过$emit和父组件通信
+
+props只能是父组件向子组件进行传值，props使得父子组件之间形成了一个单向下行绑定。子组件的数据会随着父组件不断更新。
+
+props 可以显示定义一个或一个以上的数据，对于接收的数据，可以是各种数据类型，同样也可以传递一个函数。
+
+props属性名规则：若在props中使用驼峰形式，模板中需要使用短横线的形式
+
+// 父组件
+<template>
+	<div id="father">
+		<son :msg="msgData" :fn="myFunction"></son>
+	</div>
+</template>
+<script>
+import son from './son.vue';
+export default {
+	name: 'father',
+	data() {
+		msgData: '父组件数据';
+	},
+	methods: {
+		myFunction() {
+			console.log('vue');
+		}
+	},
+	components: {
+		son
+	}
+};
+</script>
+
+// 子组件
+<template>
+	<div id="son">
+		<p>{{msg}}</p>
+		<button @click="fn">按钮</button>
+	</div>
+</template>
+<script>
+export default {
+	name: 'son',
+	props: ['msg', 'fn']
+}
+</script>
+
+子组件向父组件传值
+
+$emit绑定一个自定义事件，当这个事件被执行的时就会将参数传递给父组件，而父组件通过v-on监听并接收参数。
+
+（2）依赖注入 provide / inject（父子、祖孙）
+provide / inject是Vue提供的两个钩子，和data、methods是同级的。并且provide的书写形式和data一样。
+provide 钩子用来发送数据或方法
+inject钩子用来接收数据或方法
+
+provide() {
+	return {
+		num: this.num
+	};
+}
+
+在子组件中：
+
+inject: ['num']
+
+还可以这样写，这样写就可以访问父组件中的所有属性：
+
+provide() {
+	return {
+		app: this
+	};
+}
+data() {
+	return {
+		num: 1
+	};
+}
+
+inject: ['app'];
+console.log(this.app.num)
+
+注意： 依赖注入所提供的属性是非响应式的。
+
+（3）ref / $refs （父子，兄弟）
+ref：这个属性用在子组件上，它的引用就指向了子组件的实例。
+可以通过实例来访问组件的数据和方法。
+
+这种方式也是实现兄弟组件之间的通信。子组件1通过this.$emit通知父组件调用函数，父组件的函数里用this.$refs拿到子组件2的方法，这样就实现兄弟组件之间的通信。
+
+在子组件中:
+export default {
+	data() {
+		return {
+			name: 'JavaScript'
+		}
+	},
+	methods: {
+		sayHello() {
+			console.log('hello')
+		}
+	}
+}
 
 
+在父组件中：
+<template>
+	<child ref="child"></child>
+</template>
+import child from './child.vue';
+export default {
+	components: { child },
+	mounted() {
+		console.log(this.$refs.child.name); // JavaScript
+		this.$refs.child.sayHello();
+	}
+}
 
 
+（4）$parent / $children (父子)
 
+使用$parent可以让组件访问父组件的实例
+使用$children可以让组件访问子组件的实例
+$children并不能保证顺序，并且访问的数据也不是响应式的。
+
+<template>
+	<div>
+		<span>{{message}}</span>
+		<p>{{parentVal}}</p>
+	</div>
+</template>
+<script>
+export default {
+	data() {
+		return {
+			message: 'Vue'
+		}
+	},
+	computed: {
+		parentVal() {
+			return this.$parent.msg;
+		}
+	}
+}
+</script>
+
+// 父组件中
+<template>
+	<div class="hello_world">
+		<div>{{msg}}</div>
+		<child></child>
+		<button @click="change">点击改变子组件值</button>
+	</div>
+</template>
+<script>
+import child from './child.vue'
+export default {
+	components: { child },
+	data() {
+		return {
+			msg: 'Welcome'
+		}
+	},
+	methods: {
+		change() {
+			// 获取到子组件
+			this.$children[0].message = 'JavaScript'
+		}
+	}
+}
+</script>
+
+通过$parent访问到的是上一级父组件的实例，可以使用$root来访问根组件的实例
+
+在组件中使用$children拿到的是所有的子组件的实例，它是一个数组，并且是无序的
+
+在根组件#app上拿$parent得到的是new Vue()的实例，在这实例上再拿$parent得到的是undefined，而在最底层的子组件拿$children是个空数组
+
+$children 的值是数组，而$parent是个对象
+
+（5）$attrs / $listeners (祖孙)
+
+A父 - B父 - C父
+
+A -> C 传递数据
+
+如果使用事件总线，在多人开发或者项目较大的时候，维护起来很麻烦
+如果使用Vuex，的确也可以，但是如果仅仅是传递数据，那可能就有点浪费了。
+
+Vue引入了$attrs / $listeners，实现组件之间的跨代通信。
+
+先来看一下inheritAttrs，它的默认值true，继承所有的父组件属性除props之外的所有属性；inheritAttrs：false 只继承class属性 。
+
+$attrs：继承所有的父组件属性（除了prop传递的属性、class 和 style ），一般用在子组件的子元素上
+
+$listeners：该属性是一个对象，里面包含了作用在这个组件上的所有监听器，可以配合 v-on="$listeners" 将所有的事件监听器指向这个组件的某个特定的子元素。（相当于子组件继承父组件的事件）
+
+A组件（APP.vue):
+
+<template>
+	<div id="app">
+		// 此处监听了两个事件，可以在B组件或者C组件中直接触发
+		<child1 :p-child1="child1" :p-child2="child2" @test1="onTest1" @test2="onTest2" ></child1>
+	</div>
+</template>
+import Child1 from './Child1.vue';
+export default {
+	components: { Child1 },
+	methods: {
+		onTest1() {
+			console.log('test1 running');
+		},
+		onTest2() {
+			console.log('test2 running');
+		}
+	}
+}
+
+B组件（Child1.vue）：
+<template>
+	<div class="child-1">
+		<p>props: {{pChild1}}</p>
+		<p>$attrs: {{$attrs}}</p>
+		<child2 v-bind="$attrs" v-on="$listeners"></child2>
+	</div>
+</template>
+<script>
+import Child2 from './Child2.vue';
+export default {
+	props: ['pChild1'],
+	components: { Child2 },
+	inheritAttrs: false,
+	mounted() {
+		this.$emit('test1'); // 触发APP.vue中的test1方法
+	}
+}
+</script>
+
+C组件（Child2.vue）
+<template>
+	<div class="child-2">
+		<p>props: {{pChild2}}</p>
+		<p>$attrs: {{$attrs}}</p>
+	</div>
+</template>
+export default {
+	props: ['pChild2'],
+	inheritAttrs: false,
+	mounted() {
+		this.$emit('test2'); // 触发
+	}
+}
+
+（6）eventBus事件总线（$emit / $on）（任意组件通信）
+eventBus事件总线适用于父子组件、非父子组件等之间的通信
+
+创建事件中心管理组件之间的通信
+// event-bus.js
+import Vue from 'vue'
+export const EventBus = new Vue()
+
+（7）总结
+（1）父子组件间通信
+
+子组件通过 props 属性来接受父组件的数据，然后父组件在子组件上注册监听事件，子组件通过 emit 触发事件来向父组件发送数据。
+
+通过 ref 属性给子组件设置一个名字。父组件通过 $refs 组件名来获得子组件，子组件通过 $parent 获得父组件，这样也可以实现通信。
+
+使用 provide/inject，在父组件中通过 provide提供变量，在子组件中通过 inject 来将变量注入到组件中。不论子组件有多深，只要调用了 inject 那么就可以注入 provide中的数据。
+
+（2）兄弟组件间通信
+
+使用 eventBus 的方法，它的本质是通过创建一个空的 Vue 实例来作为消息传递的对象，通信的组件引入这个实例，通信的组件通过在这个实例上监听和触发事件，来实现消息的传递。
+
+通过 $parent/$refs 来获取到兄弟组件，也可以进行通信。
+
+（3）任意组件之间
+
+使用 eventBus ，其实就是创建一个事件中心，相当于中转站，可以用它来传递事件和接收事件。
+
+子组件可以直接改变父组件的数据吗？
+子组件不可以直接改变父组件的数据。这样做主要是为了维护父子组件的单向数据流。每次父级组件发生更新时，子组件中所有的 prop 都将会刷新为最新的值。如果这样做了，Vue 会在浏览器的控制台中发出警告。
+
+Vue提倡单向数据流，即父级 props 的更新会流向子组件，但是反过来则不行。这是为了防止意外的改变父组件状态，使得应用的数据流变得难以理解，导致数据流混乱。如果破坏了单向数据流，当应用复杂时，debug 的成本会非常高。
+
+只能通过 $emit 派发一个自定义事件，父组件接收到后，由父组件修改。
+
+vue的声明周期常见的主要分为4大阶段8大钩子函数
+
+第一阶段：创建前 / 后
+
+beforeCreate（创建前） ：数据观测和初始化事件还未开始，此时 data 的响应式追踪、event/watcher 都还没有被设置，也就是说不能访问到data、computed、watch、methods上的方法和数据。
+
+created（创建后） ：实例创建完成，实例上配置的 options 包括 data、computed、watch、methods 等都配置完成，但是此时渲染得节点还未挂载到 DOM，所以不能访问到 $el 属性。
+
+第二阶段: 渲染前 / 后
+
+beforeMount（挂载前） ：在挂载开始之前被调用，相关的render函数首次被调用。实例已完成以下的配置：编译模板，把data里面的数据和模板生成html。此时还没有挂载html到页面上。
+
+mounted（挂载后） ：在el被新创建的 vm.$el 替换，并挂载到实例上去之后调用。实例已完成以下的配置：用上面编译好的html内容替换el属性指向的DOM对象。完成模板中的html渲染到html 页面中。此过程中进行ajax交互。
+
+第三阶段: 更新前 / 后
+
+beforeUpdate（更新前） ：响应式数据更新时调用，此时虽然响应式数据更新了，但是对应的真实 DOM 还没有被渲染。
+
+updated（更新后） ：在由于数据更改导致的虚拟DOM重新渲染和打补丁之后调用。此时 DOM 已经根据响应式数据的变化更新了。调用时，组件 DOM已经更新，所以可以执行依赖于DOM的操作。然而在大多数情况下，应该避免在此期间更改状态，因为这可能会导致更新无限循环。该钩子在服务器端渲染期间不被调用。
 
 
 
