@@ -577,6 +577,302 @@ beforeUpdate（更新前） ：响应式数据更新时调用，此时虽然响�
 
 updated（更新后） ：在由于数据更改导致的虚拟DOM重新渲染和打补丁之后调用。此时 DOM 已经根据响应式数据的变化更新了。调用时，组件 DOM已经更新，所以可以执行依赖于DOM的操作。然而在大多数情况下，应该避免在此期间更改状态，因为这可能会导致更新无限循环。该钩子在服务器端渲染期间不被调用。
 
+第四阶段: 销毁前 / 后
+
+beforeDestroy（销毁前） ：实例销毁之前调用。这一步，实例仍然完全可用，this 仍能获取到实例。
+
+destroyed（销毁后） ：实例销毁后调用，调用后，Vue 实例指示的所有东西都会解绑定，所有的事件监听器会被移除，所有的子实例也会被销毁。该钩子在服务端渲染期间不被调用。
+
+另外还有 keep-alive 独有的生命周期，分别为 activated 和 deactivated 。用 keep-alive 包裹的组件在切换时不会进行销毁，而是缓存到内存中并执行 deactivated 钩子函数，命中缓存渲染后会执行 activated 钩子函数。
+
+errorCapured钩子，当捕获一个来自子孙组件的错误时被调用。此钩子会收到三个参数：错误对象、发生错误的组件实例以及一个包含错误来源信息的字符串。此钩子可以返回 false 以阻止该错误继续向上传播。
+
+加载渲染过程：
+
+父组件 beforeCreate
+父组件 created
+父组件 beforeMount
+子组件 beforeCreate
+子组件 created
+子组件 beforeMount
+子组件 mounted
+父组件 mounted
+
+更新过程：
+
+父组件 beforeUpdate
+子组件 beforeUpdate
+子组件 updated
+父组件 updated
+
+销毁过程：
+
+父组件 beforeDestroy
+子组件 beforeDestroy
+子组件 destroyed
+父组件 destoryed
+
+created:在模板渲染成html前调用，即通常初始化某些属性值，然后再渲染成视图。
+
+mounted:在模板渲染成html后调用，通常是初始化页面完成后，再对html的dom节点进行一些需要的操作。
+
+一般在哪个生命周期请求异步数据
+我们可以在钩子函数created、beforeMount、mounted 中进行调用，因为在这三个钩子函数中，data 已经创建，可以将服务端端返回的数据进行赋值。
+
+推荐在 created 钩子函数中调用异步请求，因为在 created 钩子函数中调用异步请求有以下优点：
+
+能更快获取到服务端数据，减少页面加载时间，用户体验更好；
+
+SSR不支持 beforeMount 、mounted 钩子函数，放在 created 中有助于一致性。
+
+组件缓存 keep-alive
+组件缓存
+
+组件的缓存可以在进行动态组件切换的时候对组件内部数据进行缓存,而不是走销毁流程
+
+使用场景: 多表单切换,对表单内数据进行保存
+
+keep-alive的参数(include,exclude)
+include(包含): 名称匹配的组件会被缓存-->include的值为组件的name。
+exclude(排除): 任何名称匹配的组件都不会被缓存。
+max - 数量 决定最多可以缓存多少组件。
+
+keep-alive的使用
+搭配<component></component>使用
+搭配路由使用 ( 需配置路由meta信息的keepAlive属性 )
+清除缓存组件
+在组件跳转之前使用后置路由守卫判断组件是否缓存
+( beforeRouteLeave( to, from, next ){ from.meta.keepAlive = false }
+
+使用keep-alive会将数据保留在内存中，如果要在每次进入页面的时候获取最新的数据，需要在 activated阶段获取数据，承担原来created钩子函数中获取数据的任务。
+
+
+activated	deactivated
+在 keep-alive 组件激活时调用	在keep-alive 组件停用时调用
+该钩子函数在服务器端渲染期间不被调用	该钩子在服务器端渲染期间不被调用
+
+
+使用 exclude 排除之后，就算被包裹在 keep-alive 中，这两个钩子函数依然不会被调用！在服务端渲染时，此钩子函数也不会被调用。
+
+设置了缓存的组件钩子调用情况：
+
+第一次进入：beforeRouterEnter ->created->…->activated->…->deactivated> beforeRouteLeave
+
+后续进入时：beforeRouterEnter ->activated->deactivated> beforeRouteLeave
+
+keep-alive主要流程
+判断组件 name ，不在 include 或者在 exclude 中，直接返回 vnode，说明该组件不被缓存。
+获取组件实例 key ，如果有获取实例的 key，否则重新生成。
+key生成规则，cid +"∶∶"+ tag ，仅靠cid是不够的，因为相同的构造函数可以注册为不同的本地组件。
+如果缓存对象内存在，则直接从缓存对象中获取组件实例给 vnode ，不存在则添加到缓存对象中。5.最大缓存数量，当缓存组件数量超过 max 值时，清除 keys 数组内第一个组件
+
+slot是什么
+slot又名插槽，是Vue的内容分发机制，组件内部的模板引擎使用slot元素作为承载分发内容的出口。插槽slot是子组件的一个模板标签元素，而这一个标签元素是否显示，以及怎么显示是由父组件决定的。
+
+通过插槽可以让用户可以拓展组件，去更好地复用组件和对其做定制化处理
+
+通过slot插槽向组件内部指定位置传递内容，完成这个复用组件在不同场景的应用
+
+比如布局组件、表格列、下拉选、弹框显示内容等
+
+Vue为什么采用异步渲染呢？
+Vue 是组件级更新，如果不采用异步更新，那么每次更新数据都会对当前组件进行重新渲染，所以为了性能，Vue 会在本轮数据更新后，在异步更新视图。核心思想nextTick 。
+
+dep.notify（） 通知 watcher进行更新，subs[i].update 依次调用 watcher 的update ，queueWatcher 将watcher 去重放入队列， nextTick（flushSchedulerQueue ）在下一tick中刷新watcher队列（异步）。
+
+## $nextTick 原理及作用
+其实一句话就可以把$nextTick这个东西讲明白：就是你放在$nextTick当中的操作不会立即执行，而是等数据更新、DOM更新完成之后再执行，这样我们拿到的肯定就是最新的了。
+
+Vue的响应式并不是只数据发生变化之后，DOM就立刻发生变化，而是按照一定的策略进行DOM的更新。
+
+DOM更新有两种选择，一个是在本次事件循环的最后进行一次DOM更新，另一种是把DOM更新放在下一轮的事件循环当中。Vue优先选择第一种，只有当环境不支持的时候才触发第二种机制。
+
+虽然性能上提高了很多，但这个时候问题就出现了。我已经把数据改掉了，但是它的更新异步的，而我在获取的时候，它还没有来得及改，这个时候就需要用到nextTick
+
+原理：
+
+Vue 的 nextTick 其本质是对 JavaScript 执行原理 EventLoop 的一种应用。
+
+Vue2刚开始的时候, $nextTick是宏任务(setTimeout)，但是宏任务的性能太差。
+后来改成了微任务Mutation Observer，但是还是有一些问题：
+	速度太快了，在一些特殊场景下，DOM还没更新就去获取了
+	兼容性不好，很多浏览器不支持
+后来又更新成了微宏并行阶段：先判断是否支持Mutation Observer，如果支持就使用，否则使用宏任务
+Vue2.5版本之后，修复了微任务的那些问题，目前最新的$nextTick采用的是纯微任务。
+
+在数据变化后执行的某个操作，而这个操作需要使用随数据变化而变化的DOM结构的时候，这个操作就需要方法在nextTick()的回调函数中。
+
+在vue生命周期中，如果在created()钩子进行DOM操作，也一定要放在nextTick()的回调函数中。
+
+因为在created()钩子函数中，页面的DOM还未渲染，这时候也没办法操作DOM，所以，此时如果想要操作DOM，必须将操作的代码放在nextTick()的回调函数中。
+
+##描述下Vue2的自定义指令
+
+钩子函数：指令定义对象提供钩子函数
+bind：只调用一次，指令第一次绑定到元素时调用。在这里可以进行一次性的初始化设置。
+inSerted：被绑定元素插入父节点时调用（仅保证父节点存在，但不一定已被插入文档中）。
+update：所在组件的VNode更新时调用，但是可能发生在其子VNode更新之前调用。指令的值可能发生了改变，也可能没有。但是可以通过比较更新前后的值来忽略不必要的模板更新。
+ComponentUpdate：指令所在组件的 VNode及其子VNode全部更新后调用。
+unbind：只调用一次，指令与元素解绑时调用。
+
+钩子函数的参数 ：
+
+name: 指令名，不包括 v- 前缀。
+value: 指令的绑定值， 例如：v-my-directive="1 + 1", value 的值是2。
+oldValue: 指令绑定的前一个值，仅在 update 和 componentUpdated钩子中可用。无论值是否改变都可用。
+expression: 绑定值的表达式或变量名。例如 v-my-directive="1 + 1",    expression 的值是 "1 + 1"。
+arg: 传给指令的参数。例如 v-my-directive:foo， arg 的值是 "foo"。
+modifiers: 一个包含修饰符的对象。例如：v-my-directive.foo.bar, 修饰符对象 modifiers 的值是 { foo: true, bar: true }。
+el：指令所绑定的元素，可以用来直接操作 DOM
+bing：一个对象，包含以下属性：
+vnode：编译生成的虚拟节点
+oldVnode：上一个虚拟节点（更新钩子函数中才有用）
+
+## data为什么是一个函数而不是对象
+
+对象为引用类型，当复用组件时，由于数据对象都指向同一个data对象，当在一个组件中修改data时，其他重用的组件中的data会同时被修改；而使用返回对象的函数，由于每次返回的都是一个新对象（Object的实例），引用地址不同，则不会出现这个问题。
+
+## 动态给vue的data添加一个新的属性时会发生什么？怎样解决？
+问题: 数据虽然更新了, 但是页面没有更新
+
+原因:
+
+vue2是用过Object.defineProperty实现数据响应式
+当我们访问定义的属性或者修改属性值的时候都能够触发setter与getter
+但是我们为obj添加新属性的时候，却无法触发事件属性的拦截
+原因是一开始obj的要定义的属性被设成了响应式数据，而新增的属性并没有通过Object.defineProperty设置成响应式数据
+
+解决方案:
+
+Vue.set()
+通过Vue.set向响应式对象中添加一个property，并确保这个新 property同样是响应式的，且触发视图更新
+
+Object.assign()
+直接使用Object.assign()添加到对象的新属性不会触发更新
+应创建一个新的对象，合并原对象和混入对象的属性
+
+$forceUpdate
+如果你发现你自己需要在 Vue中做一次强制更新，99.9% 的情况，是你在某个地方做错了事
+
+$forceUpdate迫使Vue 实例重新渲染
+PS：仅仅影响实例本身和插入插槽内容的子组件，而不是所有子组件。
+
+总结
+
+如果为对象添加少量的新属性，可以直接采用Vue.set()
+如果需要为新对象添加大量的新属性，则通过Object.assign()创建新对象
+如果你实在不知道怎么操作时，可采取$forceUpdate()进行强制刷新 (不建议)
+
+PS：vue3是用过proxy实现数据响应式的，直接动态添加新属性仍可以实现数据响应式
+
+##Vue data 中某一个属性的值发生改变后，视图会立即同步执行重新渲染吗
+不会立即同步执行重新渲染。Vue 实现响应式并不是数据发生变化之后 DOM 立即变化，而是按一定的策略进行 DOM 的更新。Vue 在更新 DOM 时是异步执行的。只要侦听到数据变化， Vue 将开启一个队列，并缓冲在同一事件循环中发生的所有数据变更。
+
+如果同一个watcher被多次触发，只会被推入到队列中一次。这种在缓冲时去除重复数据对于避免不必要的计算和 DOM 操作是非常重要的。然后，在下一个的事件循环tick中，Vue 刷新队列并执行实际（已去重的）工作。
+
+##vue如何监听(检测)对象或者数组某个属性的变化
+当在项目中直接设置数组的某一项的值，或者直接设置对象的某个属性值，这个时候，你会发现页面并没有更新。这是因为Object.defineProperty()限制，监听不到变化。
+
+解决方式：
+
+this.$set(你要改变的数组/对象，你要改变的位置/key，你要改成什么value)
+
+
+调用以下几个数组的方法
+
+splice()、 push()、pop()、shift()、unshift()、sort()、reverse()
+
+vue源码里缓存了array的原型链，然后重写了这几个方法，触发这几个方法的时候会observer数据，意思是使用这些方法不用我们再进行额外的操作，视图自动进行更新。推荐使用splice方法会比较好自定义,因为splice可以在数组的任何位置进行删除/添加操作
+
+## vm.$set 的实现原理是：
+
+如果目标是数组，直接使用数组的 splice 方法触发相应式；
+
+如果目标是对象，会先判读属性是否存在、对象是否是响应式，最终如果要对属性进行响应式处理，则是通过调用 defineReactive 方法进行响应式处理（ defineReactive 方法就是 Vue 在初始化对象时，给对象属性采用 Object.defineProperty 动态添加 getter 和 setter 的功能所调用的方法）
+
+##assets和static的区别
+相同点： assets 和 static 两个都是存放静态资源文件。项目中所需要的资源文件图片，字体图标，样式文件等都可以放在这两个文件下，这是相同点
+
+不相同点： assets 中存放的静态资源文件在项目打包时，也就是运行 npm run build 时会将 assets 中放置的静态资源文件进行打包上传，所谓打包简单点可以理解为压缩体积，代码格式化。而压缩后的静态资源文件最终也都会放置在 static 文件中跟着 index.html 一同上传至服务器。static 中放置的静态资源文件就不会要走打包压缩格式化等流程，而是直接进入打包好的目录，直接上传至服务器。因为避免了压缩直接进行上传，在打包时会提高一定的效率，但是 static 中的资源文件由于没有进行压缩等操作，所以文件的体积也就相对于 assets 中打包后的文件提交较大点。在服务器中就会占据更大的空间。
+
+建议： 将项目中 template需要的样式文件js文件等都可以放置在 assets 中，走打包这一流程。减少体积。而项目中引入的第三方的资源文件如iconfoont.css 等文件可以放置在 static 中，因为这些引入的第三方文件已经经过处理，不再需要处理，直接上传。
+
+##Vue的性能优化(项目优化)有哪些 
+（1）编码阶段
+尽量减少data中的数据，data中的数据都会增加getter和setter，会收集对应的watcher
+v-if和v-for不能连用
+如果需要使用v-for给每项元素绑定事件时使用事件代理
+SPA 页面采用keep-alive缓存组件
+在更多的情况下，使用v-if替代v-show
+key保证唯一
+使用路由懒加载、异步组件
+防抖、节流
+第三方模块按需导入
+长列表滚动到可视区域动态加载
+图片懒加载
+
+（2）SEO优化
+预渲染
+服务端渲染SSR
+
+（3）打包优化
+压缩代码
+Tree Shaking/Scope Hoisting
+使用cdn加载第三方模块
+多线程打包happypack
+splitChunks抽离公共文件
+sourceMap优化
+
+（4）用户体验
+骨架屏
+PWA
+还可以使用缓存(客户端缓存、服务端缓存)优化、服务端开启gzip压缩等。
+
+##Vue的template模版编译原理
+vue中的模板template无法被浏览器解析并渲染，因为这不属于浏览器的标准，不是正确的HTML语法，所有需要将template转化成一个JavaScript函数，这样浏览器就可以执行这一个函数并渲染出对应的HTML元素，就可以让视图跑起来了，这一个转化的过程，就成为模板编译。模板编译又分三个阶段，解析parse，优化optimize，生成generate，最终生成可执行函数render。
+
+解析阶段：使用大量的正则表达式对template字符串进行解析，将标签、指令、属性等转化为抽象语法树AST。
+
+优化阶段：遍历AST，找到其中的一些静态节点并进行标记，方便在页面重渲染的时候进行diff比较时，直接跳过这一些静态节点，优化runtime的性能。
+
+生成阶段：将最终的AST转化为render函数字符串。
+
+##template和jsx的有什么分别？
+对于 runtime 来说，只需要保证组件存在 render 函数即可，而有了预编译之后，只需要保证构建过程中生成 render 函数就可以。在 webpack 中，使用vue-loader编译.vue文件，内部依赖的vue-template-compiler模块，在 webpack 构建过程中，将template预编译成 render 函数。与 react 类似，在添加了jsx的语法糖解析器babel-plugin-transform-vue-jsx之后，就可以直接手写render函数。
+
+所以，template和jsx的都是render的一种表现形式，不同的是：JSX相对于template而言，具有更高的灵活性，在复杂的组件中，更具有优势，而 template 虽然显得有些呆滞。但是 template 在代码结构上更符合视图与逻辑分离的习惯，更简单、更直观、更好维护。
+
+##讲讲什么是 JSX ？
+jsx是JavaScript的一种语法扩展，它跟模板语言很接近，但是它充分具备JavaScript的能力 当 Facebook 第一次发布 React 时，他们还引入了一种新的 JS 方言 JSX，将原始 HTML 模板嵌入到 JS 代码中。JSX 代码本身不能被浏览器读取，必须使用Babel和webpack等工具将其转换为传统的JS。JSX中的标签可以是单标签，也可以是双标签，但必须保证标签是闭合的。
+
+
+##对SSR的理解
+SSR也就是服务端渲染，也就是将Vue在客户端把标签渲染成HTML的工作放在服务端完成，然后再把html直接返回给客户端
+
+SSR的优势：
+更好的SEO
+首屏加载速度更快
+
+SSR的缺点：
+开发条件会受到限制，服务器端渲染只支持beforeCreate和created两个钩子；
+当需要一些外部扩展库时需要特殊处理，服务端渲染应用程序也需要处于Node.js的运行环境；
+更多的服务端负载。
+
+##vue初始化页面闪动问题
+使用vue开发时，在vue初始化之前，由于div是不归vue管的，所以我们写的代码在还没有解析的情况下会容易出现花屏现象，看到类似于{{message}}的字样，虽然一般情况下这个时间很短暂，但是还是有必要让解决这个问题的。
+
+首先：在css里加上以下代码：
+[v-cloak]{display: none;}
+如果没有彻底解决问题，则在根元素加上style="display: none;" :style="{display: 'block'}"
+
+##Promise 是什么？
+具体表达：
+
+从语法上来说：Promise 是一个构造函数
+从功能上来说：Promise 对象用来封装一个异步操作并可以获取其结果
+
+
+
 
 
 
