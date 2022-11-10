@@ -1,4 +1,4 @@
-
+[](https://start.aliyun.com/bootstrap.html)
 JS 数据类型分为两大类：
 
 原始类型
