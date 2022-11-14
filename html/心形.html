@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<title>表白</title>
+	</head>
+	<style>
+		.heart {
+			position: relative;
+			width: 120px;
+			height: 120px;
+			background: #ff0000;
+			margin: 200px auto;
+			transform: rotate(45deg) scale(0.9);
+			animation: change 3s infinite;
+			-webkit-animation: change 3s infinite;
+			box-shadow: 0 0 30px 5px rgba(255, 0, 0, 0.7);
+		}
+		.heart::after,
+		.heart::before {
+			content: '';
+			position: absolute;
+			width: 120px;
+			height: 120px;
+			background-color: #ff0000;
+			border-radius: 50%;
+			box-shadow: 0 0 30px 5px rgba(255, 0, 0, 0.7);
+		}
+		@-webkit-keyframes change {
+			from {
+				transform: rotate(45deg) scale(0.9);
+			}
+			50% {
+				transform: rotate(45deg) scale(1.3);
+			}
+			to {
+				transform: rotate(45deg) scale(0.9);
+			}
+		}
+		@keyframes change {
+			from {
+				transform: rotate(45deg) scale(0.9);
+			}
+			50% {
+				transform: rotate(45deg) scale(1.3);
+			}
+			to {
+				transform: rotate(45deg) scale(0.9);
+			}
+		}
+		.heart::after {
+			left: -68px;
+		}
+		.heart::before {
+			top: -68px;
+		}
+	</style>
+	<body>
+		<div class="heart"></div>
+	</body>
+</html>
