@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>亿速云-利用纯CSS实现头像旋转和发光的效果</title>
+	</head>
+	<style>
+		.chatPanel-toMin {
+			position: absolute;
+			top: 100px;
+			width: 65px;
+			height: 60px;
+			border-radius: 50% 0 0 50%;
+			background: #fff;
+		}
+
+		.user-avatar {
+			position: absolute;
+			right: 0;
+			top: 7px;
+			right: 8px;
+			width: 45px;
+			height: 45px;
+			border-radius: 50%;
+			border: 1px solid #ddd;
+		}
+
+		.user-avatar img {
+			width: 100%;
+			height: 100%;
+			border-radius: 50%;
+		}
+
+
+		/*spin旋转*/
+		.spin {
+			-webkit-animation: spin 5s infinite linear;
+			animation: spin 5s infinite linear
+		}
+
+		@keyframes spin {
+			0% {
+				-webkit-transform: rotate(0deg);
+				transform: rotate(0deg)
+			}
+
+			100% {
+				-webkit-transform: rotate(360deg);
+				transform: rotate(360deg)
+			}
+		}
+
+
+		/*sparkle 闪耀*/
+		.sparkle {
+			-webkit-transition: all 1s;
+			-moz-transition: all 1s;
+			transition: all 1s;
+			-webkit-animation: sparkle linear 2s 1.5s infinite;
+			-moz-animation: sparkle linear 2s 1.5s infinite;
+			animation: sparkle linear 2s 1.5s infinite;
+		}
+
+		@-webkit-keyframes sparkle {
+			0% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(0deg);
+				transform: rotate(0deg)
+			}
+
+			50% {
+				box-shadow: 0 0 20px 0 #1affff;
+			}
+
+			100% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(359deg);
+				transform: rotate(359deg)
+			}
+		}
+
+		@-moz-keyframes sparkle {
+			0% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(0deg);
+				transform: rotate(0deg)
+			}
+
+			50% {
+				box-shadow: 0 0 20px 0 #1affff;
+			}
+
+			100% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(359deg);
+				transform: rotate(359deg)
+			}
+		}
+
+		@-o-keyframes sparkle {
+			0% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(0deg);
+				transform: rotate(0deg)
+			}
+
+			50% {
+				box-shadow: 0 0 20px 0 #1affff;
+			}
+
+			100% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(359deg);
+				transform: rotate(359deg)
+			}
+		}
+
+		@keyframes sparkle {
+			0% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(0deg);
+				transform: rotate(0deg)
+			}
+
+			50% {
+				box-shadow: 0 0 20px 0 #1affff;
+			}
+
+			100% {
+				box-shadow: 0 0 0px 0 #b2ff1a;
+				-webkit-transform: rotate(359deg);
+				transform: rotate(359deg)
+			}
+		}
+	</style>
+	</p>
+	<p>
+		<body>
+	</p>
+	<p>
+	<div>
+
+		<div class="chatPanel-toMin">
+			<div class="user-avatar">
+				<img class="sparkle spin" src="http://internalhbyj.huabenyaoji.com/611604908040609792.jpg" alt="">
+			</div>
+		</div>
+
+	</div>
+	</p>
+	<p>
+		</body>
+</html>
