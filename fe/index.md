@@ -1,4 +1,28 @@
 [](https://start.aliyun.com/bootstrap.html)
+If you need to have node@12 first in your PATH, run:
+  echo 'export PATH="/opt/homebrew/opt/node@12/bin:$PATH"' >> ~/.zshrc
+
+For compilers to find node@12 you may need to set:
+  export LDFLAGS="-L/opt/homebrew/opt/node@12/lib"
+  export CPPFLAGS="-I/opt/homebrew/opt/node@12/include"
+
+==> Summary
+🍺  /opt/homebrew/Cellar/node@12/12.22.8: 3,899 files, 50.3MB
+==> Running `brew cleanup node@12`...
+Disable this behaviour by setting HOMEBREW_NO_INSTALL_CLEANUP.
+Hide these hints with HOMEBREW_NO_ENV_HINTS (see `man brew`).
+==> Caveats
+==> node@12
+node@12 is keg-only, which means it was not symlinked into /opt/homebrew,
+because this is an alternate version of another formula.
+
+If you need to have node@12 first in your PATH, run:
+  echo 'export PATH="/opt/homebrew/opt/node@12/bin:$PATH"' >> ~/.zshrc
+
+For compilers to find node@12 you may need to set:
+  export LDFLAGS="-L/opt/homebrew/opt/node@12/lib"
+  export CPPFLAGS="-I/opt/homebrew/opt/node@12/include"
+  
 JS 数据类型分为两大类：
 
 原始类型
