@@ -1,4 +1,7 @@
 [](https://start.aliyun.com/bootstrap.html)
+
+brew search node
+
 If you need to have node@12 first in your PATH, run:
   echo 'export PATH="/opt/homebrew/opt/node@12/bin:$PATH"' >> ~/.zshrc
 
