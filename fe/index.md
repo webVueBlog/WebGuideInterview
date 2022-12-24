@@ -2,6 +2,18 @@
 
 brew search node
 
+node@14 is keg-only, which means it was not symlinked into /opt/homebrew,
+because this is an alternate version of another formula.
+
+If you need to have node@14 first in your PATH, run:
+  echo 'export PATH="/opt/homebrew/opt/node@14/bin:$PATH"' >> ~/.zshrc
+
+For compilers to find node@14 you may need to set:
+  export LDFLAGS="-L/opt/homebrew/opt/node@14/lib"
+  export CPPFLAGS="-I/opt/homebrew/opt/node@14/include"
+
+
+
 If you need to have node@12 first in your PATH, run:
   echo 'export PATH="/opt/homebrew/opt/node@12/bin:$PATH"' >> ~/.zshrc
 
