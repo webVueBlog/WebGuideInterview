@@ -22,6 +22,10 @@
 
 ![1661736480445](https://user-images.githubusercontent.com/59645426/187105281-339c1c8e-27a5-42d1-bafd-56adb91e8faa.png)
 
+## 前端系列
+
+1. [前端系列第1集-什么是Dom事件流?](https://mp.weixin.qq.com/s/rGa9sMr52it3bVAXt785Vg)
+
 ## 自己总结的一些文章系列（b站讲解）
 
 - [从进程，线程去了解浏览器内部的流程原理（梳理）](https://juejin.cn/post/7155037687077044255)
