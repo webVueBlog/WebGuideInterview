@@ -25,12 +25,11 @@
 ## 前端系列
 
 1. [前端系列第1集-什么是Dom事件流?](https://mp.weixin.qq.com/s/rGa9sMr52it3bVAXt785Vg)
+2. [前端系列第2集-如何让事件先冒泡后获取?](https://mp.weixin.qq.com/s/2MxnQKOd0JmA2B8J0_F-RA)
 
 ## 自己总结的一些文章系列（b站讲解）
 
 - [从进程，线程去了解浏览器内部的流程原理（梳理）](https://juejin.cn/post/7155037687077044255)
-
-## 自己总结的一些文章系列 【发布在程序员小灰公众号】
 
 ## 实践
 
@@ -48,27 +47,10 @@
 - [网页性能优化](https://github.com/webVueBlog/fe/issues/16)
 - [阿里前端攻城狮们(一)](https://github.com/webVueBlog/fe/issues/17)
 - [阿里前端攻城狮们(二)](https://github.com/webVueBlog/fe/issues/18)
-
-## 系列
-
 - [http是什么](https://github.com/webVueBlog/fe/issues/12)
 - [什么是进程](https://github.com/webVueBlog/fe/issues/13)
 - [http缓存（1）](https://github.com/webVueBlog/fe/issues/14)
 - [http缓存（2）](https://github.com/webVueBlog/fe/issues/15)
-
-## git commit
-
-- feat: 增加新功能
-- fix: 修复bug
-- build: 构造工具的或者外部依赖的改动，例如webpack，npm
-- chore: 不修改src或者test的其余修改，例如构建过程或辅助工具的变动
-- ci: 与CI(持续集成服务）有关的改动
-- docs：只改动了文档相关的内容
-- style: 不影响代码含义的改动，例如去掉空格，改变缩进，增删分号
-- perf: 提高性能的改动
-- refactor: 代码重构时使用
-- revert: 执行git revert打印的message
-- test: 添加测试或者修改现有测试
 
 ## 勘误及提问
 
