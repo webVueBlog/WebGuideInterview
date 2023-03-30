@@ -28,6 +28,7 @@
 2. [前端系列第2集-如何让事件先冒泡后获取?](https://mp.weixin.qq.com/s/2MxnQKOd0JmA2B8J0_F-RA)
 3. [前端系列第3集-如何理解css盒子型?](https://mp.weixin.qq.com/s/9f5yre7x9z28KTu6NVvCvg)
 4. [前端系列第4集-解释下浮动和它的工作原理，清除浮动的方法](https://mp.weixin.qq.com/s/ECUpskd6E_X0a96mDwKtqw)
+5. [前端系列第5集-Vue系列](https://mp.weixin.qq.com/s/JdWWWiiWgadS48phoD1mbA)
 
 ## 自己总结的一些文章系列（b站讲解）
 
