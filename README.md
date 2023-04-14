@@ -32,6 +32,7 @@
 6. [前端系列第6集-Vue3系列](https://mp.weixin.qq.com/s/9v21Ao9UMEmlzBPY7EkMdw)
 7. [前端系列第7集-ES6系列](https://mp.weixin.qq.com/s/buoZbssL5nPOodcyXkjxnA)
 8. [前端系列第8集-Javascript系列](https://mp.weixin.qq.com/s/7WJBPZoHUQi2FixUJRdytw)
+9. [前端系列第9集-CSS系列](https://mp.weixin.qq.com/s/So2814OMFSXnqdTaEDhUFg)
 
 ## 自己总结的一些文章系列（b站讲解）
 
