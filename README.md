@@ -35,6 +35,8 @@
 9. [前端系列第9集-CSS系列](https://mp.weixin.qq.com/s/So2814OMFSXnqdTaEDhUFg)
 10. [前端系列第10集-实战篇](https://mp.weixin.qq.com/s/ApPUR5ibdSYMa37T49iHOw)
 11. [前端系列11集-ES6 知识总结](https://mp.weixin.qq.com/s/xCMocCQafjo45zxCrZNYHg)
+12. [前端系列12集-全局API，组合式API，选项式API的使用](https://mp.weixin.qq.com/s/DDlp8QDW1GN9a2mZreXSSA)
+13. [前端系列13集-内置内容，单文件组件，进阶 API](https://mp.weixin.qq.com/s/XvEQS0-eIkk9Gm5pgTbA1A)
 
 ## 自己总结的一些文章系列（b站讲解）
 
