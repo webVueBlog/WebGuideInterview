@@ -40,6 +40,7 @@
 14. [前端系列14集-Vue3-setup](https://mp.weixin.qq.com/s/ydNzwifK-cwy1XTDaywZpg)
 15. [前端系列15集-watch，watchEffect，eventBus](https://mp.weixin.qq.com/s/kd3chO8KLADCtsKZL7o4Og)
 16. [前端系列16集-vue3范型，vue-i18n-next，watch，watchEffect](https://mp.weixin.qq.com/s/muaAw4IcLv0Kdw66zuIDhQ)
+17. [前端系列17集-和公司架构师在学习vue3-springboot](https://mp.weixin.qq.com/s/Ic6Y84S7zMEXKZrtFyvVyA)
 
 ## 自己总结的一些文章系列（b站讲解）
 
